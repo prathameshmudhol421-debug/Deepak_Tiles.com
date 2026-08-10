@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#c8102e" />
+  <title id="pageTitle">Depak Tiles &amp; Granite — Products, Stories &amp; More</title>
+  <meta name="description" id="pageDescription" content="Premium tiles, granite and marble for your home. Browse our collection, read our latest stories, and find the perfect finish for every room." />
+  <meta name="robots" content="index, follow" />
+
+  <!-- Open Graph / social sharing -->
+  <meta property="og:type"        content="website" />
+  <meta property="og:title"       content="Depak Tiles &amp; Granite" />
+  <meta property="og:description" content="Premium tiles, granite and marble for your home." />
+  <meta property="og:image"       content="uploads/shop-logo.png" />
+
+  <link rel="icon" type="image/png" href="uploads/shop-banner.jpg" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <nav class="navbar">
+    <div class="nav-left">
+      <a href="#" class="brand" data-view="home" id="navLogo" aria-label="Go to home">
+        <span class="brand-mark" aria-hidden="true">
+          <img src="uploads/shop-banner.jpg" alt="Depak Tiles &amp; Granite logo" />
+        </span>
+        <span class="brand-text">
+          <span class="brand-name" id="navBrandName">Depak Tiles &amp; Granite</span>
+          <span class="brand-tag" id="navBrandTag">Premium tiles &amp; granite</span>
+        </span>
+      </a>
+    </div>
+    <div class="nav-right" id="navRight">
+      <button class="nav-btn" data-view="home" id="navHomeBtn">Home</button>
+      <button class="nav-btn" data-view="shopProfile" id="navShopProfileBtn">Shop</button>
+      <button class="nav-btn" data-view="rate" id="navRateBtn">Rate Us</button>
+      <button class="nav-btn" data-view="myReviews" id="navMyReviewsBtn" style="display:none;">My Reviews</button>
+      <button class="nav-btn" id="navShopDashboardBtn" data-view="shopDashboard" style="display:none;">Dashboard</button>
+      <button class="nav-btn" id="navShopLoginBtn" data-view="shopLogin">Shopkeeper</button>
+      <button class="nav-btn" id="navShopLogoutBtn" style="display:none;">Log out</button>
+      <button class="hamburger" id="hamburgerBtn" aria-label="Open menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ============ HOME VIEW (public product list) ============ -->
+  <main class="view view-home active" id="view-home">
+    <div class="hero">
+
+      <div class="hero-overlay">
+        <div class="container">
+          <span class="hero-badge">★ Trusted since years · Free site visit</span>
+          <h1 id="heroShopName">Depak Tiles &amp; Granite</h1>
+          <p id="heroShopTagline">Premium tiles, granite and marble for your home</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+      <h2 class="section-title">Latest products</h2>
+      <div class="product-grid" id="productGrid"></div>
+    </div>
+
+    <div class="container">
+      <h2 class="section-title">From the blog</h2>
+      <div class="blog-feed" id="blogFeed"></div>
+    </div>
+  </main>
+
+  <!-- ============ BLOG DETAIL (PUBLIC READ VIEW) ============ -->
+  <div class="view view-blog" id="view-blog">
+    <div class="container" id="blogDetail">
+      <!-- blog detail injected here -->
+    </div>
+  </div>
+
+  <!-- ============ PRODUCT DETAIL VIEW ============ -->
+  <div class="view view-product" id="view-product">
+    <div class="container" id="productDetail">
+      <!-- product detail injected here -->
+    </div>
+  </div>
+
+  <!-- ============ COMMENTS VIEW ============ -->
+  <div class="view view-comments" id="view-comments">
+    <div class="container">
+      <div class="comments-header">
+        <button class="back-btn" id="commentsBackBtn">← Back</button>
+        <h2>Comments</h2>
+      </div>
+      <div id="commentsProductSummary"></div>
+      <div class="comment-form-wrap" id="commentFormWrap">
+        <div class="guest-form-grid">
+          <div class="form-group">
+            <label for="guestNameInput">Your name</label>
+            <input type="text" id="guestNameInput" class="form-control" placeholder="e.g. Ravi" maxlength="80" autocomplete="name" />
+            <div class="error-message"></div>
+          </div>
+          <div class="form-group">
+            <label for="guestEmailInput">Your email (kept private)</label>
+            <input type="email" id="guestEmailInput" class="form-control" placeholder="you@example.com" maxlength="190" autocomplete="email" />
+            <div class="error-message"></div>
+          </div>
+        </div>
+        <textarea id="commentInput" class="form-control" rows="3" placeholder="Write a comment..." maxlength="1000"></textarea>
+        <div class="comment-form-actions">
+          <span class="hint" id="commentHint">No sign-up needed — just a name and email for verification.</span>
+          <button class="btn-submit btn-sm" id="commentSubmitBtn">Post comment</button>
+        </div>
+      </div>
+      <div class="comment-list" id="commentList"></div>
+    </div>
+  </div>
+
+  <!-- ============ SHOP PROFILE (public) ============ -->
+  <div class="view view-shop-profile" id="view-shopProfile">
+    <div class="container">
+      <div class="shop-profile-card" id="shopProfileCard">
+        <div class="shop-profile-logo" id="shopProfileLogo">
+          <img src="uploads/shop-banner.jpg" alt="Depak Tiles &amp; Granite logo" />
+          <span class="shop-profile-logo-fallback" id="shopProfileLogoFallback" aria-hidden="true"></span>
+        </div>
+        <h1 class="shop-profile-name" id="shopProfileName">Depak Tiles &amp; Granite</h1>
+        <p class="shop-profile-owner" id="shopProfileOwner">Owned by Depak</p>
+        <p class="shop-profile-about" id="shopProfileAbout"></p>
+        <ul class="shop-profile-meta">
+          <li><span>📞</span><span id="shopProfileMobile">8830093535,7387462337</span></li>
+          <li><span>✉️</span><span id="shopProfileEmail">Not provided</span></li>
+          <li><span>📍</span><span id="shopProfileLocation">Not provided</span></li>
+          <li><span>📝</span><span id="shopProfileNote">No additional notes</span></li>
+        </ul>
+
+        <!-- Shop-wide rating summary (read-only, public). -->
+        <div class="shop-rating-summary" id="shopRatingSummary">
+          <div class="shop-rating-stars" id="shopRatingStars">★★★★★</div>
+          <div class="shop-rating-meta">
+            <strong id="shopRatingAverage">0.0</strong>
+            <span id="shopRatingCount">No reviews yet — be the first to rate us.</span>
+          </div>
+          <button class="btn-link" data-view="rate">Leave a rating →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ RATE US VIEW (public) ============ -->
+  <div class="view view-rate" id="view-rate">
+    <div class="container rate-wrap">
+      <button class="back-btn" data-view="home">← Back to home</button>
+
+      <div class="rate-card">
+        <header class="rate-head">
+          <span class="rate-eyebrow">How are we doing?</span>
+          <h1>Rate us</h1>
+          <p class="subtitle">Pick a star rating and share what's on your mind. Your review is private — only you and the shop owner can see it. If you want the shop to reply, leave your email so they can get back to you.</p>
+        </header>
+
+        <!-- Scope switch: shop-wide vs a specific product -->
+        <div class="rate-scope">
+          <label class="rate-scope-option">
+            <input type="radio" name="rate-scope" value="shop" checked />
+            <span>Overall shop experience</span>
+          </label>
+          <label class="rate-scope-option">
+            <input type="radio" name="rate-scope" value="product" />
+            <span>A specific product</span>
+          </label>
+          <select id="rateProductSelect" class="form-control rate-product-select" style="display:none;">
+            <option value="">Choose a product…</option>
+          </select>
+        </div>
+
+        <!-- Star widget -->
+        <div class="star-widget" id="rateStars" role="radiogroup" aria-label="Your star rating">
+          <button type="button" class="star" data-star="1" aria-label="1 star">★</button>
+          <button type="button" class="star" data-star="2" aria-label="2 stars">★</button>
+          <button type="button" class="star" data-star="3" aria-label="3 stars">★</button>
+          <button type="button" class="star" data-star="4" aria-label="4 stars">★</button>
+          <button type="button" class="star" data-star="5" aria-label="5 stars">★</button>
+          <span class="star-widget-label" id="rateStarsLabel">Tap a star</span>
+        </div>
+
+        <div class="rate-form-grid">
+          <div class="form-group">
+            <label for="rateName">Your name</label>
+            <input type="text" id="rateName" class="form-control" placeholder="e.g. Ravi" maxlength="80" autocomplete="name" />
+            <div class="error-message"></div>
+          </div>
+          <div class="form-group">
+            <label for="rateEmail">Your email <span class="muted">(kept private — only used for verification)</span></label>
+            <input type="email" id="rateEmail" class="form-control" placeholder="you@example.com" maxlength="190" autocomplete="email" />
+            <div class="error-message"></div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="rateBody">Your review / preview / message</label>
+          <textarea id="rateBody" class="form-control write-body" rows="5" placeholder="Tell us what you loved (or what we can do better). Optional — leave blank if you only want to leave a star rating." maxlength="2000"></textarea>
+          <div class="error-message"></div>
+        </div>
+
+        <!-- Honeypot — bots fill it; humans never see it. -->
+        <input type="text" name="website" id="rateHoneypot" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;" aria-hidden="true" />
+
+        <div class="rate-actions">
+          <span class="hint" id="rateStatus"></span>
+          <button class="btn-submit btn-sm" id="rateSubmitBtn">Submit rating</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ MY REVIEWS VIEW (public, email-gated) ============ -->
+  <div class="view view-my-reviews" id="view-myReviews">
+    <div class="container my-reviews-wrap">
+      <button class="back-btn" data-view="home">← Back to home</button>
+
+      <div class="rate-card">
+        <header class="rate-head">
+          <span class="rate-eyebrow">Your private space</span>
+          <h1>My reviews</h1>
+          <p class="subtitle">Reviews you've left, plus any replies from the shop owner. To view yours, enter the email you used when you rated us.</p>
+        </header>
+
+        <form id="myReviewsForm" class="my-reviews-form" novalidate>
+          <div class="form-group">
+            <label for="myReviewsEmail">Your email</label>
+            <input type="email" id="myReviewsEmail" class="form-control" placeholder="you@example.com" maxlength="190" autocomplete="email" />
+            <div class="error-message"></div>
+          </div>
+          <button type="submit" class="btn-submit btn-sm" id="myReviewsSubmitBtn">Show my reviews</button>
+        </form>
+
+        <div id="myReviewsResults" class="my-reviews-results" hidden></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SHOPKEEPER LOGIN ============ -->
+  <div class="view view-auth" id="view-shopLogin">
+    <div class="auth-card">
+      <h1>Shopkeeper login</h1>
+      <p class="subtitle">Sign in with your shopkeeper credentials to manage products, blogs, and shop details.</p>
+
+      <form id="shopLoginForm" novalidate>
+        <div class="form-group">
+          <label for="shop-login-username">Username</label>
+          <input type="text" id="shop-login-username" name="shop_username" class="form-control" placeholder="Your username" autocomplete="username" />
+          <div class="error-message"></div>
+        </div>
+        <div class="form-group">
+          <label for="shop-login-password">Password</label>
+          <input type="password" id="shop-login-password" name="shop_password" class="form-control" placeholder="Your password" autocomplete="current-password" />
+          <div class="error-message"></div>
+        </div>
+        <button type="submit" class="btn-submit">Login as shopkeeper</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============ SHOPKEEPER DASHBOARD ============ -->
+  <div class="view view-dashboard" id="view-shopDashboard">
+    <div class="dashboard-wrap">
+      <aside class="dashboard-side">
+        <h2 id="dashShopName">Depak Tiles &amp; Granite</h2>
+        <p class="muted">Signed in as <strong>Depak</strong></p>
+        <ul class="dashboard-nav">
+          <li><a href="#" data-dash="products" class="active">Products</a></li>
+          <li><a href="#" data-dash="blog">Blog</a></li>
+          <li><a href="#" data-dash="shop">Shop details</a></li>
+          <li><a href="#" data-dash="engagement">Engagement</a></li>
+        </ul>
+        <button class="btn-edit" id="dashLogoutBtn">Sign out</button>
+      </aside>
+
+      <section class="dashboard-main">
+        <!-- Products tab -->
+        <div class="dash-tab" id="dashTab-products">
+          <div class="dash-tab-header">
+            <h3>Manage products</h3>
+            <button class="btn-write-new" id="newProductBtn">+ New product</button>
+          </div>
+
+          <form id="productForm" class="write-form" enctype="multipart/form-data" style="display:none;">
+            <input type="hidden" id="editProductId" value="" />
+            <div class="form-group">
+              <label for="prodTitle">Product title</label>
+              <input type="text" id="prodTitle" class="form-control" placeholder="e.g. Italian Marble (per sq ft)" maxlength="200" />
+              <div class="error-message"></div>
+            </div>
+            <div class="form-group">
+              <label for="prodPrice">Price (₹)</label>
+              <input type="number" id="prodPrice" class="form-control" min="0" step="0.01" placeholder="0.00" />
+            </div>
+            <div class="form-group">
+              <label for="prodImage">Cover image</label>
+              <div class="image-drop" id="prodImageDrop">
+                <input type="file" id="prodImage" accept="image/*" hidden />
+                <div class="drop-empty" id="prodDropEmpty">
+                  <p>Click to choose an image (max 5 MB)</p>
+                </div>
+                <img id="prodImagePreview" class="image-preview" alt="Preview" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="prodBody">Description</label>
+              <textarea id="prodBody" class="form-control write-body" rows="6" placeholder="Tell customers about this product..."></textarea>
+              <div class="error-message"></div>
+            </div>
+            <div class="form-actions">
+              <button type="button" class="btn-publish" id="prodSaveBtn">Publish</button>
+              <button type="button" class="btn-cancel" id="prodCancelBtn">Cancel</button>
+            </div>
+            <div class="write-status" id="prodStatus"></div>
+          </form>
+
+          <div class="gigs-grid" id="dashProductGrid"></div>
+        </div>
+
+        <!-- Blog tab -->
+        <div class="dash-tab" id="dashTab-blog" style="display:none;">
+          <div class="dash-tab-header">
+            <h3>Manage blogs</h3>
+            <button class="btn-write-new" id="newBlogBtn">+ New blog</button>
+          </div>
+
+          <form id="blogForm" class="write-form" enctype="multipart/form-data" style="display:none;">
+            <input type="hidden" id="editBlogId" value="" />
+            <div class="form-group">
+              <label for="blogTitle">Blog title</label>
+              <input type="text" id="blogTitle" class="form-control" placeholder="e.g. Best granite finishes for living rooms" maxlength="200" />
+              <div class="error-message"></div>
+            </div>
+            <div class="form-group">
+              <label for="blogImage">Cover image</label>
+              <div class="image-drop" id="blogImageDrop">
+                <input type="file" id="blogImage" accept="image/*" hidden />
+                <div class="drop-empty" id="blogDropEmpty">
+                  <p>Click to choose an image (max 5 MB)</p>
+                </div>
+                <img id="blogImagePreview" class="image-preview" alt="Preview" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="blogBody">Description</label>
+              <textarea id="blogBody" class="form-control write-body" rows="8" placeholder="Write a description that will appear below the image on the home page..."></textarea>
+              <div class="error-message"></div>
+            </div>
+            <div class="form-actions">
+              <button type="button" class="btn-publish" id="blogPublishBtn">Publish</button>
+              <button type="button" class="btn-cancel" id="blogCancelBtn">Cancel</button>
+            </div>
+            <div class="write-status" id="blogStatus"></div>
+          </form>
+
+          <div class="gigs-grid" id="dashBlogGrid">
+            <p style="color:#757575;">Loading…</p>
+          </div>
+        </div>
+
+        <!-- Shop details tab -->
+        <div class="dash-tab" id="dashTab-shop" style="display:none;">
+          <div class="dash-tab-header">
+            <h3>Shop details</h3>
+          </div>
+          <form id="shopForm" class="write-form">
+            <div class="form-group">
+              <label for="shopName">Shop name</label>
+              <input type="text" id="shopName" class="form-control" maxlength="120" />
+            </div>
+            <div class="form-group">
+              <label for="shopOwner">Owner name</label>
+              <input type="text" id="shopOwner" class="form-control" maxlength="120" />
+            </div>
+            <div class="form-group">
+              <label for="shopMobile">Mobile number</label>
+              <input type="text" id="shopMobile" class="form-control" maxlength="40" placeholder="+91 ..." />
+            </div>
+            <div class="form-group">
+              <label for="shopEmail">Email</label>
+              <input type="email" id="shopEmail" class="form-control" maxlength="190" />
+            </div>
+            <div class="form-group">
+              <label for="shopLocation">Shop location</label>
+              <input type="text" id="shopLocation" class="form-control" maxlength="255" placeholder="City, State" />
+            </div>
+            <div class="form-group">
+              <label for="shopNote">Contact note (one line)</label>
+              <input type="text" id="shopNote" class="form-control" maxlength="255" placeholder="e.g. WhatsApp preferred, 9am–7pm" />
+            </div>
+            <div class="form-group">
+              <label for="shopAbout">About the shop</label>
+              <textarea id="shopAbout" class="form-control" rows="5" maxlength="1000"></textarea>
+            </div>
+            <div class="form-actions">
+              <button type="button" class="btn-publish" id="shopSaveBtn">Save changes</button>
+            </div>
+            <div class="write-status" id="shopStatus"></div>
+          </form>
+        </div>
+
+        <!-- Engagement tab: shop-wide ratings + comments, with reply UI -->
+        <div class="dash-tab" id="dashTab-engagement" style="display:none;">
+          <div class="dash-tab-header">
+            <h3>Engagement</h3>
+            <div class="engagement-filters">
+              <select id="engagementFilter" class="form-control engagement-filter">
+                <option value="all">All feedback</option>
+                <option value="ratings">Ratings / reviews</option>
+                <option value="comments">Comments</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Top metrics -->
+          <div class="engagement-metrics" id="engagementMetrics">
+            <div class="metric-tile">
+              <span class="metric-label">Shop rating</span>
+              <span class="metric-value" id="metricAvg">—</span>
+              <span class="metric-meta" id="metricCount">No reviews yet</span>
+            </div>
+            <div class="metric-tile">
+              <span class="metric-label">Total comments</span>
+              <span class="metric-value" id="metricComments">0</span>
+              <span class="metric-meta">across all products</span>
+            </div>
+            <div class="metric-tile">
+              <span class="metric-label">Likes</span>
+              <span class="metric-value" id="metricLikes">0</span>
+              <span class="metric-meta">across all products</span>
+            </div>
+          </div>
+
+          <div class="engagement-list" id="engagementList">
+            <p style="color:#757575;">Loading…</p>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div class="toast" id="toast"></div>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div class="footer-brand">
+        <span class="footer-mark" aria-hidden="true">
+          <img src="uploads/shop-banner.jpg" alt="Depak Tiles &amp; Granite logo" />
+        </span>
+        <span id="footerShopName">Depak Tiles &amp; Granite</span>
+      </div>
+      <p class="footer-tag" id="footerShopTag">Premium tiles &amp; granite, handpicked for every space.</p>
+      <p class="footer-contact">📞 8830093535 · 7387462337 &nbsp; · &nbsp; 📍 Basmath Road, Hingoli</p>
+      <p class="footer-meta">© <span id="footerYear">2026</span> · All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="js/script.js"></script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+# Block direct access to the CLI helper that sets the shopkeeper password.
+<FilesMatch "^setup_shopkeeper\.php$">
+  Require all denied
+</FilesMatch>
+
+# Block direct access to the OTP dev log and the email config (no secrets
+# in email_config.php, but it shouldn't be browsable either).
+<FilesMatch "^(otp_log\.txt|email_config\.php)$">
+  Require all denied
+</FilesMatch>
+
+# Hard deny direct access to any PHP file in this folder that is not an
+# entry point. This is belt-and-suspenders; index hiding only.
+<FilesMatch "\.(env|ini|log|sql)$">
+  Require all denied
+</FilesMatch>

@@ -1,0 +1,39 @@
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Composer / PHP
+/vendor/
+composer.lock
+
+# Node
+/node_modules/
+
+# Env / Secrets
+.env
+api/db.php
+config.php
+
+# Uploads / runtime
+/uploads/
+/storage/
+*.log
+/tmp/
+cache/
+
+# Database dumps (do not commit real user data)
+*.sql
+*.sql.gz
+*.sql.bak
+
+# XAMPP / MySQL data (if inside project)
+mysql/data/
+
+# Generated / other
+*.log
+*.cache
+
+# Windows thumbnail
+Thumbs.db
