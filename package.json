@@ -1,5 +1,5 @@
 {
-    "scripts":{
-    "start":"node index.js"
+    "scripts": {
+        "start": "php -S localhost:8000"
     }
 }
