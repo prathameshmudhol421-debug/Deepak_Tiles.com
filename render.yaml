@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: deepak-tiles
+    env: php
+    plan: free
+    buildCommand: "php -v"
+    startCommand: "php -S 0.0.0.0:$PORT -t . router.php"
