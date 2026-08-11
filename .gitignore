@@ -34,6 +34,14 @@ mysql/data/
 # Generated / other
 *.log
 *.cache
+render-build.log
 
 # Windows thumbnail
 Thumbs.db
+
+# IMPORTANT for Render: the free Web Service plan has an ephemeral disk.
+# Any file written under uploads/ is wiped on the next deploy / instance
+# restart. Uploads/ is still .gitignored above so the deployed copies stay
+# empty until a runtime write. Long-term fix: replace the file path in
+# api/upload.php with an S3 (or compatible) PUT call when S3_BUCKET env
+# vars are present — see DEPLOY.md "Known limitations" for context.

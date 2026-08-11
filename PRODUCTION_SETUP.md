@@ -2,6 +2,16 @@
 
 **Status**: Ready to deploy ✅
 
+> **Looking for the Render (PaaS) walkthrough?** See
+> [`DEPLOY.md`](DEPLOY.md). It covers the Render-specific path:
+> provisioning a free external MySQL (Render does not include one),
+> wiring env vars, and bootstrapping the schema on first request.
+>
+> **The rest of this document** covers the more traditional paths:
+> shared hosting (Bluehost / Hostinger / GoDaddy), VPS (DigitalOcean,
+> Linode, AWS Lightsail), or any LAMP stack you control. If you're
+> deploying to one of those, keep reading.
+
 ## Current Local Setup ✅
 - Database: Connected to `farm_db` on MariaDB (port is whatever
   `api/db.php` `DB_PORT` says — currently `3307` on this machine)

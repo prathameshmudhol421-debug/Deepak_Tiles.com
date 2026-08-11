@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: farm-shop
+    runtime: php
+    plan: free
+    rootDir: .
+    # The repo has no composer.json yet, so composer install is a no-op for
+    # now. It is wired in so the moment we add a dependency (e.g. an S3
+    # adapter for the uploads/ folder), the build picks it up automatically.
+    buildCommand: |
+      echo "Building FARM shop on Render…"
+      composer install --no-dev --no-interaction --optimize-autoloader 2>/dev/null || echo "(no composer.json yet — skipping)"
+    # `php -S` with the router file emulates the Apache DirectoryIndex +
+    # .htaccess behaviour we use locally. The router is at ./router.php.
+    startCommand: php -S 0.0.0.0:${PORT} -t . router.php
+    autoDeploy: true
+    envVars:
+      - key: DB_HOST
+        sync: false      # set in the Render dashboard
+      - key: DB_PORT
+        value: "3306"
+      - key: DB_NAME
+        value: farm_db
+      - key: DB_USER
+        sync: false
+      - key: DB_PASS
+        sync: false
+      - key: APP_BASE
+        value: /

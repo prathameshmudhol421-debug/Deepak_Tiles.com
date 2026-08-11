@@ -1,249 +1,203 @@
-# Depak Tiles & Granite — Setup & Deployment Guide
+# Deploying to Render
 
-A small tiles-and-granite shop web app: products, blogs, guest-friendly likes /
-comments / shares, a public star-rating + review system, and a shopkeeper
-dashboard with a private engagement feed + reply workflow. Built as a PHP
-API + single-page HTML/JS front-end.
+This is the step-by-step for putting the FARM shop live on
+[Render](https://render.com) using the free tier.
 
-```
-spider.html       ← single-page app (the homepage)
-css/style.css     ← all styles
-js/script.js      ← all client logic
-api/auth.php      ← shopkeeper login (visitors do NOT need accounts)
-api/blogs.php     ← products + blog CRUD
-api/upload.php    ← image uploads
-api/interactions.php ← guest comments / likes / shares / ratings / replies
-api/db.php        ← PDO + helpers (sessions, CSRF, rate limit)
-api/setup_shopkeeper.php ← CLI to set / rotate shopkeeper password
-farm.sql          ← optional manual schema import
-uploads/          ← uploaded images (writable, no PHP execution)
-```
+The project is configured to deploy via `render.yaml` (PHP buildpack,
+start command `php -S 0.0.0.0:$PORT -t . router.php`). Everything below
+can also be done through the Render dashboard without the YAML file.
 
-## 1. First-time setup (XAMPP / Apache)
+---
 
-1. Copy the project folder into `C:\xampp\htdocs\FARM\` (or any path under
-   `htdocs`).
-2. Start Apache and MySQL from the XAMPP control panel.
-3. Open phpMyAdmin and import `farm.sql` (or skip this — `api/db.php` will
-   create the schema on first request).
-4. Set (or rotate) the shopkeeper password. The default username is
-   `Deepak` (defined in `api/db.php` as `SHOP_USERNAME`):
+## 1. Get a free MySQL database
 
-   ```powershell
-   cd C:\xampp\htdocs\FARM
-   C:\xampp\php\php.exe api\setup_shopkeeper.php set Deepak Deepak@123
+Render's free Web Services do **not** include a MySQL server. Use any
+managed MySQL provider — these have a free tier:
+
+* **Aiven MySQL** — https://aiven.io/mysql (recommended; the most
+  generous free tier and the easiest to set up)
+* **PlanetScale** — https://planetscale.com (free Hobby tier, but the
+  schema-creation queries need the `utf8mb4_0900_ai_ci` collation
+  instead of `utf8mb4_unicode_ci`; tweak `api/db.php:ensure_schema()` if
+  you go this route)
+* **Railway** — https://railway.app ($5 trial credit; no permanent free
+  MySQL)
+
+### Aiven step-by-step
+
+1. Sign up at https://aiven.io (GitHub login works).
+2. Click **Create service → MySQL**.
+3. Pick the **Free** plan, the closest region to your Render region
+   (latency matters), and a name like `farm-db`.
+4. After ~2 minutes, Aiven shows your service. Open it and copy from
+   the "Connection information" panel:
+   * **Host** (`mysql-xxxxx.a.aivencloud.com`)
+   * **Port** (`12345` etc — Aiven uses a non-default port)
+   * **User** (`avnadmin`)
+   * **Password** (click "Show" to reveal)
+5. Under **Settings → Allowed IP addresses**, add `0.0.0.0/0` so Render
+   can reach it. (For a production deploy you'd lock this down to
+   Render's outbound IPs, but they rotate, so `0.0.0.0/0` is the
+   pragmatic free-tier choice.)
+6. Open Aiven's **Service URI** link to launch phpMyAdmin, or use any
+   MySQL client, and run:
+
+   ```sql
+   CREATE DATABASE IF NOT EXISTS farm_db
+     CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
    ```
 
-   Or pick any other password you like — the plaintext is bcrypt-hashed and
-   never written to disk or to the database.
+   The `ensure_schema()` function in `api/db.php` would also create the
+   database automatically, but most managed MySQL providers require you
+   to create the database yourself before PDO can `USE` it.
 
-5. Visit `http://localhost/FARM/spider.html` (or just
-   `http://localhost/FARM/` thanks to the `DirectoryIndex` in `.htaccess`).
+---
 
-Visitors do **not** need to sign up to do anything on the site — see
-section 5 ("Guest interactions and ratings") below.
+## 2. Push the repo to GitHub
 
-## 2. Storing your data permanently
+The repo should already be on GitHub from the earlier deploy attempt.
+Push the new files we just added (`render.yaml`, `router.php`, the
+emptied `package.json`, the env-aware `api/db.php`, the new `DEPLOY.md`
+and `README.md`) to your branch.
 
-Everything that should "live forever" lives in MySQL:
-
-| What's stored                       | Table                                |
-|-------------------------------------|--------------------------------------|
-| Legacy regular user accounts        | `users` (kept for backward compat; no longer required) |
-| Shopkeeper password                 | `shopkeeper_credentials` (bcrypt hash) |
-| Shop details                        | `shop_profile` (single row — id 1)   |
-| Products                            | `products` (`is_blog = 0`)           |
-| Blog posts                          | `products` (`is_blog = 1`)           |
-| Comments (guest-friendly)           | `comments` (+ `guest_name`, `guest_email_hash`) |
-| Likes (guest-friendly)              | `likes` (+ `guest_email_hash`)        |
-| Shares                              | `shares` (+ `guest_email_hash`)       |
-| Star ratings / reviews              | `ratings` (`product_id` NULL = shop-wide) |
-| Shopkeeper replies                  | `review_replies` (`target_kind` = `comment` or `rating`) |
-| Uploaded images                     | `uploads/` directory + path in `products.image_path` |
-
-The schema is auto-created on first API call, so you don't need to import
-`farm.sql` manually. If you want to seed the database with sample data,
-import `farm.sql` after step 4.
-
-### Backups
-
-To back up the entire site, copy the project folder AND dump the database:
-
-```powershell
-C:\xampp\mysql\bin\mysqldump.exe -u root -p farm_db > farm_backup.sql
+```bash
+cd C:\xampp\htdocs\FARM
+git add .
+git commit -m "Make project deployable on Render (PHP buildpack + env vars)"
+git push origin main
 ```
 
-Restoring is just importing the SQL file and copying the folder back.
+---
 
-## 3. Rotating the shopkeeper password
+## 3. Create the Web Service on Render
 
-```powershell
-C:\xampp\php\php.exe api\setup_shopkeeper.php set Deepak NewPassword456!
+1. Sign in at https://render.com.
+2. Click **New + → Web Service → Connect a repository**, pick your
+   `FARM` repo.
+3. Render will inspect the repo. Confirm:
+   * **Environment**: `PHP`
+   * **Region**: same region as your Aiven DB if possible
+   * **Branch**: `main` (or whichever)
+   * **Root Directory**: leave blank (project root)
+   * **Build Command**: `true` (or paste: `composer install --no-dev --no-interaction --optimize-autoloader 2>/dev/null || echo skip`)
+   * **Start Command**: `php -S 0.0.0.0:$PORT -t . router.php`
+   * **Plan**: `Free`
+4. Scroll down to **Environment Variables** and add:
+   * `DB_HOST`     → the Aiven host
+   * `DB_PORT`     → the Aiven port (e.g. `12345`)
+   * `DB_NAME`     → `farm_db`
+   * `DB_USER`     → the Aiven user (e.g. `avnadmin`)
+   * `DB_PASS`     → the Aiven password
+   * `APP_BASE`    → `/`
+5. Click **Create Web Service**. Render builds and deploys in ~2–3
+   minutes. Watch the logs for `Booting server on 0.0.0.0:10000`.
+
+> **Why `package.json` is empty.** Earlier this project shipped a
+> `package.json` whose start script ran `php -S localhost:8000`. Render
+> saw that file and tried to launch the project as a Node.js app, but
+> the Node runtime has no PHP binary → `MODULE_NOT_FOUND` and a crash.
+> The file is now `{}` so Render's auto-detection falls through to the
+> PHP buildpack we configured via `render.yaml` / the Start Command.
+
+---
+
+## 4. Bootstrap the schema
+
+The first request to the API triggers `api/db.php:db()`, which calls
+`ensure_schema()`. That function runs `CREATE TABLE IF NOT EXISTS` for
+every table the API uses, so the schema is ready as soon as the API is
+hit once.
+
+To verify, open this URL in your browser:
+
+```
+https://<your-service>.onrender.com/api/auth.php?action=csrf
 ```
 
-Or generate a random one (printed once on the terminal):
+You should see a JSON response like:
 
-```powershell
-C:\xampp\php\php.exe api\setup_shopkeeper.php rotate
+```json
+{"ok":true,"csrf":"a1b2c3d4..."}
 ```
 
-View current status:
+If you get `500 Database connection failed`, double-check the four
+`DB_*` env vars and that Aiven's `0.0.0.0/0` rule is in place.
 
-```powershell
-C:\xampp\php\php.exe api\setup_shopkeeper.php status
-```
+---
 
-## 4. Security features included
+## 5. Set the shopkeeper password
 
-- **No plaintext credentials anywhere.** The shopkeeper password is stored
-  as a bcrypt hash. The login form on the website contains no placeholder
-  hint. View source on the public page — there is no credential visible.
-- **CSRF protection.** Every POST/PUT/DELETE checks the `X-CSRF-Token`
-  header. The JavaScript SPA fetches a token on boot and refreshes it after
-  login.
-- **Shopkeeper login is never locked out.** Wrong passwords return `401`
-  immediately and the shopkeeper can try again right away — no IP
-  rate-limit, no account lockout. The shopkeeper usually signs in from the
-  same network/IP as the shop's visitors, so locking the IP would block
-  them too. Brute-force protection is delegated to bcrypt's slow hash.
-- **Session security.** `HttpOnly`, `SameSite=Lax`, `Secure` (when on HTTPS),
-  custom session cookie name (`SPIDER_SESSID` — internal, safe to rename),
-  and `session_regenerate_id` on every login.
-- **Image upload validation.** MIME check + `getimagesize` re-validation +
-  extension whitelist + content-type-driven extension. SVGs are rejected.
-- **Security headers.** `X-Content-Type-Options: nosniff`,
-  `Referrer-Policy: same-origin`, `X-Frame-Options: DENY`.
+The shopkeeper account must be created **once** from the command line
+(it's the only place where the bcrypt hash is written).
 
-## 5. Guest interactions and ratings
+1. In Render, open your service → **Shell** tab.
+2. Run:
 
-Visitors do not need to sign up or log in to like, comment on, share, or
-rate anything on the site. To leave any form of feedback they only have to
-provide a **display name** and an **email**.
+   ```
+   php api/setup_shopkeeper.php set Deepak 'YourStrongPassword!'
+   ```
 
-- The browser keeps the name + email in `localStorage` (key
-  `spider_guest_v1`) so the visitor types them once and never again.
-- The server hashes the email with SHA-256 and stores **only the hash**.
-  The raw email never reaches the database.
-- The hash is used as the visitor's identity for matching likes to the
-  same visitor, so the like counter doesn't double when the same visitor
-  hits "Like" twice.
-- A hidden honeypot field on the rating and comment forms rejects basic
-  bots.
+3. Open `https://<your-service>.onrender.com/`, click **Shopkeeper**,
+   sign in with `Deepak` / your new password.
 
-### Privacy model for reviews
+---
 
-The public site **never** exposes individual review bodies or reviewer
-names to other visitors. Only the aggregate (count + average) is shown on
-the public shop profile.
+## 6. Smoke-test the deployment
 
-A review body is shown only to:
+* **Homepage loads**: `https://<your-service>.onrender.com/` shows the
+  SPA (proves `router.php`'s `DirectoryIndex` emulation works).
+* **Shopkeeper dashboard**: create a product with an image, verify the
+  image appears in the public profile.
+* **Guest interactions**: comment, like, rate as a guest (no login).
+* **Engagement tab**: see the comment + rating appear in the shopkeeper
+  dashboard, reply to it, confirm the reply shows up.
 
-1. **The visitor who wrote it** — they see it (and any reply from the
-   shop) by opening the "My Reviews" page and entering the email they
-   used when they rated. The server hashes that email, matches it against
-   the stored hash, and returns only the matching rows.
-2. **The shop owner** — via the **Engagement** tab in the shopkeeper
-   dashboard.
+---
 
-Anything else (likes, share counts, comments) is public as before.
+## Known limitations on the Render free tier
 
-### Shopkeeper workflow: the Engagement tab
+1. **Ephemeral disk** — the `uploads/` directory is wiped on every
+   redeploy and on instance restarts (Render free plans sleep after
+   inactivity and lose local disk when they wake). The database and
+   all metadata survive; only the uploaded image binaries are lost.
+   - Workaround today: re-upload after a redeploy.
+   - Proper fix: swap the `move_uploaded_file()` call in
+     `api/upload.php` for an S3 PUT when `S3_BUCKET` is set, and serve
+     images from S3 / Cloudflare R2. Add this in a follow-up.
 
-After signing in, the shopkeeper dashboard has a fourth tab called
-**Engagement**. It shows three quick metric tiles at the top:
+2. **Sleep on free plan** — Render free Web Services idle-sleep after
+   15 minutes of no traffic. The first request after sleep takes
+   ~30 seconds to wake up. This is fine for a small shop site but
+   noticeable.
 
-- Shop rating (average star value + review count, shop-wide)
-- Total comments across all products
-- Total likes across all products
+3. **No MySQL on Render** — that's why step 1 sends you to Aiven.
 
-Below the tiles is a unified feed that lists every rating and every
-comment, newest first. Each item has:
+4. **HTTPS** — Render provides `*.onrender.com` TLS automatically. If
+   you add a custom domain, Render issues a Let's Encrypt cert with one
+   click.
 
-- A `Reply` text box. Submitting sends a professional reply attributed to
-  the shop name; it appears inline under the visitor's feedback.
-- For comments, a `Delete` button that removes the comment and any
-  associated replies (use it for spam).
+---
 
-There's also a filter dropdown at the top right of the tab so you can
-show only ratings or only comments.
+## Troubleshooting
 
-## 6. Publishing the site
+| Symptom | Fix |
+|---------|-----|
+| Build fails with "Cannot find package.json" | Confirm you pushed the emptied `package.json` (it should be `{}`, not missing). |
+| Build fails with `composer: command not found` | Change the Build Command to `true` (composer is optional, see step 3). |
+| Start fails with "Address already in use" | Render sets `$PORT` for you — don't hardcode a port in the start command. |
+| `500 Database connection failed` | Re-check the four `DB_*` env vars and that Aiven's `0.0.0.0/0` IP rule is in place. |
+| Homepage shows the Apache directory listing instead of the SPA | `DirectoryIndex` is Apache-only. The PHP router (`router.php`) handles this on Render — make sure the Start Command matches step 3. |
+| Images disappear after a redeploy | Ephemeral disk (see limitations above). |
+| CSRF "token missing or invalid" | Refresh the page once — the SPA fetches a fresh token on boot. |
 
-For a public deployment:
+---
 
-1. **HTTPS only.** Use Let's Encrypt or your hosting provider's free TLS.
-   The `Secure` cookie flag will then take effect automatically.
-2. **Production PHP settings.** In `php.ini`:
-   - `expose_php = Off`
-   - `display_errors = Off`
-   - `log_errors = On`
-3. **Database credentials.** Edit `api/db.php` `DB_USER` / `DB_PASS` to a
-   dedicated MySQL user, not `root`.
-4. **File permissions.** `uploads/` must be writable by the web server user
-   but not executable. The included `.htaccess` already blocks PHP execution
-   inside `uploads/`.
-5. **Don't expose `api/setup_shopkeeper.php` to the web.** It already
-   refuses HTTP requests, but if you serve Apache with restrictive config
-   you can move it outside the document root.
-6. **Add a real OG image.** Replace `uploads/og-default.png` with a 1200×630
-   brand image for nice social previews.
+## Upgrading later
 
-### Optional Apache hardening (top-level `.htaccess`)
+When the shop outgrows the free tier:
 
-The included `.htaccess` already sets:
-
-```apache
-DirectoryIndex spider.html
-
-<IfModule mod_headers.c>
-  Header always set X-Frame-Options "DENY"
-  Header always set X-Content-Type-Options "nosniff"
-  Header always set Referrer-Policy "strict-origin-when-cross-origin"
-  Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
-</IfModule>
-
-<IfModule mod_rewrite.c>
-  RewriteEngine On
-  RewriteCond %{HTTP_HOST} !^localhost
-  RewriteCond %{HTTP_HOST} !^127\.0\.0\.1
-  RewriteCond %{HTTPS} !=on
-  RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
-</IfModule>
-```
-
-The HTTPS redirect is skipped for `localhost` / `127.0.0.1` so dev works
-over plain HTTP.
-
-## 7. Troubleshooting
-
-- **"Shopkeeper has not been set up yet"** — run
-  `php api\setup_shopkeeper.php set Deepak <your-password>`.
-- **"CSRF token missing or invalid"** — refresh the page and log in again.
-- **"Invalid shopkeeper username or password"** — the shopkeeper login is
-  never rate-limited or locked out, so this is always a real credential
-  mismatch. Re-enter the password, or reset it from the CLI:
-  `php api\setup_shopkeeper.php set Deepak <new-password>`.
-- **Database connection refused** — confirm MariaDB is listening on the
-  port in `api/db.php` (`DB_PORT`). Verify with
-  `netstat -ano | Select-String ":3306|:3307"`.
-- **Images not loading** — check `uploads/` is writable and that the
-  `uploads/.htaccess` file is intact.
-- **500 errors** — enable PHP error logging, check Apache's `error.log`.
-
-## 8. Customization
-
-- **Shop name & branding**: shopkeeper dashboard → "Shop details" tab.
-  This updates the navbar, hero, footer, page title, and Open Graph tags.
-  The first-time default is "Depak Tiles & Granite" (set in
-  `api/db.php` → `ensure_schema`).
-- **Login username**: change `SHOP_USERNAME` in `api/db.php` and rotate
-  the password with `php api\setup_shopkeeper.php set <user> <pw>`.
-- **Colors**: edit the CSS variables at the top of `css/style.css`:
-  ```css
-  :root {
-    --shop-accent: #c8102e;
-    --shop-accent-dark: #a30d24;
-  }
-  ```
-- **Products per page**: edit the `LIMIT 200` in `api/blogs.php` functions.
-- **Rate-limit thresholds**: edit `rate_limit_check()` calls in `api/auth.php`.
+* **Persistent disk**: Render paid plans support a mounted disk. Move
+  the `uploads/` directory there. (Or — preferred — switch to S3.)
+* **No idle sleep**: paid plans don't sleep.
+* **Custom domain + HTTPS**: free on Render, one-click in the
+  dashboard.
