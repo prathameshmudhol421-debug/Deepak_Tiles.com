@@ -13,9 +13,9 @@
  *   2. Forbids any .php file inside uploads/ from executing (defence in
  *      depth — uploads/.htaccess already does this on Apache).
  *   3. For any request that didn't match a real file, falls back to:
- *         - /                 → spider.html  (DirectoryIndex equivalent)
+ *         - /                 → index.html  (DirectoryIndex equivalent)
  *         - /api/<anything>   → the matching PHP file
- *         - everything else   → spider.html  (SPA deep-link support)
+ *         - everything else   → index.html  (SPA deep-link support)
  */
 
 declare(strict_types=1);
@@ -40,9 +40,9 @@ if ($path !== '/' && is_file($candidate)) {
     return false;
 }
 
-// 3. DirectoryIndex: serve spider.html for the project root.
+// 3. DirectoryIndex: serve index.html for the project root.
 if ($path === '/' || $path === '') {
-    require $docRoot . '/spider.html';
+    require $docRoot . '/index.html';
     return true;
 }
 
@@ -66,6 +66,6 @@ if (preg_match('#^/api/(.+?)(?:/)?$#', $path, $m)) {
 }
 
 // 5. SPA fallback for any other path — deep links like /rate, /shop, etc.
-//    hit spider.html and the client-side JS router takes over.
-require $docRoot . '/spider.html';
+//    hit index.html and the client-side JS router takes over.
+require $docRoot . '/index.html';
 return true;

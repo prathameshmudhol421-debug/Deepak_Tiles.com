@@ -4,7 +4,7 @@ A small single-page shop website: products, blog posts, guest-friendly
 likes / comments / shares / star ratings, and a shopkeeper dashboard with
 a private engagement feed and reply workflow.
 
-* Frontend: `spider.html` + `css/` + `js/`
+* Frontend: `index.html` + `css/` + `js/`
 * Backend: PHP 7.4+ (no framework), PDO + MySQL/MariaDB
 * Storage: MySQL for data; the `uploads/` directory for product images
 
@@ -12,7 +12,7 @@ a private engagement feed and reply workflow.
 
 1. Copy the folder to `C:\xampp\htdocs\FARM\`.
 2. Start Apache and MySQL from the XAMPP control panel.
-3. Open `http://localhost/FARM/spider.html`. The schema is created
+3. Open `http://localhost/FARM/index.html`. The schema is created
    automatically on first request — no need to import `farm.sql`.
 4. Set the shopkeeper password from a terminal:
 
@@ -60,7 +60,7 @@ Full step-by-step with screenshots-of-the-mind is in
 ## File map
 
 ```
-spider.html              ← single-page app (homepage)
+index.html              ← single-page app (homepage)
 css/style.css            ← all styles
 js/script.js             ← all client logic
 api/auth.php             ← shopkeeper login

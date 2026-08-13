@@ -17,7 +17,7 @@
   `api/db.php` `DB_PORT` says — currently `3307` on this machine)
 - Shopkeeper account: `Deepak` (set with `php api\setup_shopkeeper.php set Deepak …`)
 - PHP API: All endpoints available
-- Frontend: Single-page app at `spider.html` (also reachable at `/` via
+- Frontend: Single-page app at `index.html` (also reachable at `/` via
   `DirectoryIndex`)
 
 ## Production Deployment Steps
@@ -96,13 +96,13 @@ sudo systemctl restart apache2
 ### Step 5: Set File Permissions
 ```bash
 # SSH into your server:
-chmod 755 /path/to/spider
-chmod 755 /path/to/spider/uploads
-chmod 644 /path/to/spider/.htaccess
+chmod 755 /path/to/index
+chmod 755 /path/to/index/uploads
+chmod 644 /path/to/index/.htaccess
 # uploads/ must be writable by web server but NOT executable
 # (Apache user is usually www-data or apache)
-chown -R www-data:www-data /path/to/spider/uploads
-chmod 775 /path/to/spider/uploads
+chown -R www-data:www-data /path/to/index/uploads
+chmod 775 /path/to/index/uploads
 ```
 
 ### Step 6: Update .htaccess (Enable HTTPS)
@@ -117,7 +117,7 @@ The default dev password is `Deepak@123`. **Change it** before going live:
 
 ```bash
 ssh user@yourserver.com
-cd /path/to/spider
+cd /path/to/index
 php api/setup_shopkeeper.php set Deepak 'AReal-Strong-Pass-2026!'
 ```
 

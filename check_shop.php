@@ -12,7 +12,7 @@ try {
     echo "Mobile    : " . ($row['mobile']     ?? 'Not set') . "\n";
     echo "Email     : " . ($row['email']      ?? 'Not set') . "\n";
     echo "Location  : " . ($row['location']   ?? 'Not set') . "\n";
-    echo "\nLogin at http://localhost/FARM/spider.html\n";
+    echo "\nLogin at http://localhost/FARM/index.html\n";
     echo "  Username: Deepak\n";
     echo "  Password: Deepak@123\n";
     echo "  (rotate with: php api\\setup_shopkeeper.php set Deepak <new-password>)\n";

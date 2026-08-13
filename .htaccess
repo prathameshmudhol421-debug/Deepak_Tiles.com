@@ -1,5 +1,5 @@
 # Friendly URLs — serve spider.html on /
-DirectoryIndex spider.html
+DirectoryIndex index.html
 
 # Security headers (belt-and-suspenders for production)
 <IfModule mod_headers.c>
