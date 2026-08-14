@@ -13,7 +13,6 @@ composer.lock
 
 # Env / Secrets
 .env
-api/db.php
 config.php
 
 # Uploads / runtime
