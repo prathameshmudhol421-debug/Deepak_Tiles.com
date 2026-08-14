@@ -468,11 +468,15 @@ function honeypot_triggered(array $data): bool {
 /* ===== Session bootstrap ===== */
 function start_session_once(): void {
     if (session_status() === PHP_SESSION_NONE) {
-        $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+        // Detect HTTPS even when behind a reverse proxy (Render, Cloudflare, etc.).
+        // Render sets X-Forwarded-Proto: https but $_SERVER['HTTPS'] is empty.
+        $xfProto = $_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '';
+        $https   = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+                || strtolower($xfProto) === 'https';
         session_set_cookie_params([
             'lifetime' => 0,
             'path'     => '/',
-            'secure'   => $secure,
+            'secure'   => $https,
             'httponly' => true,
             'samesite' => 'Lax',
         ]);
