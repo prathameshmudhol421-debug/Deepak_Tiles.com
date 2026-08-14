@@ -42,13 +42,19 @@ function parse_database_url(): array {
 }
 
 $_dburl = parse_database_url();
+$parsedDriver = $_dburl['driver'] ?? 'mysql';
+$parsedHost   = $_dburl['host'] ?? '127.0.0.1';
+$parsedPort   = $_dburl['port'] ?? (getenv('DB_DRIVER') === 'pgsql' || $parsedDriver === 'pgsql' ? '5432' : '3306');
+$parsedName   = $_dburl['name'] ?? 'public';
+$parsedUser   = $_dburl['user'] ?? 'root';
+$parsedPass   = $_dburl['pass'] ?? '';
 
-define('DB_DRIVER',     getenv('DB_DRIVER')     ?: ($_dburl['driver'] ?? 'mysql'));
-define('DB_HOST',       getenv('DB_HOST')       ?: ($_dburl['host']   ?? '127.0.0.1'));
-define('DB_PORT',       getenv('DB_PORT')       ?: ($_dburl['port']   ?? (getenv('DB_DRIVER') === 'pgsql' || ($_dburl['driver'] ?? '') === 'pgsql' ? '5432' : '3306')));
-define('DB_NAME',       getenv('DB_NAME')       ?: ($_dburl['name']   ?: 'public'));
-define('DB_USER',       getenv('DB_USER')       ?: ($_dburl['user']   ?: 'root'));
-define('DB_PASS',       getenv('DB_PASS')       ?: ($_dburl['pass']   ?: ''));
+define('DB_DRIVER',     getenv('DB_DRIVER')     ?: $parsedDriver);
+define('DB_HOST',       getenv('DB_HOST')       ?: $parsedHost);
+define('DB_PORT',       getenv('DB_PORT')       ?: $parsedPort);
+define('DB_NAME',       getenv('DB_NAME')       ?: $parsedName);
+define('DB_USER',       getenv('DB_USER')       ?: $parsedUser);
+define('DB_PASS',       getenv('DB_PASS')       ?: $parsedPass);
 define('SHOP_USERNAME', getenv('SHOP_USERNAME') ?: 'Deepak');
 
 unset($_dburl);
