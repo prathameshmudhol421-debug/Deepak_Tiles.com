@@ -5,14 +5,26 @@
  */
 declare(strict_types=1);
 
-$possibleDbFiles = [
-    __DIR__ . '/api/db.php',
-    __DIR__ . '/db.php',
-    dirname(__DIR__) . '/api/db.php',
-    dirname(__DIR__) . '/db.php',
-    '/var/www/html/api/db.php',
-    '/var/www/html/FARM/api/db.php',
-];
+$roots = array_filter([
+    __DIR__,
+    dirname(__DIR__),
+    getcwd(),
+    $_SERVER['DOCUMENT_ROOT'] ?? '',
+    dirname($_SERVER['SCRIPT_FILENAME'] ?? __DIR__),
+    '/var/www/html',
+    '/var/www/html/FARM',
+    'C:/xampp/htdocs/FARM',
+], static fn($v) => $v !== '' && $v !== false);
+
+$roots = array_values(array_unique(array_map(static fn($v) => rtrim($v, DIRECTORY_SEPARATOR), $roots)));
+
+$possibleDbFiles = [];
+foreach ($roots as $root) {
+    $possibleDbFiles[] = $root . '/api/db.php';
+    $possibleDbFiles[] = $root . '/db.php';
+    $possibleDbFiles[] = $root . '/FARM/api/db.php';
+    $possibleDbFiles[] = $root . '/FARM/db.php';
+}
 
 $dbFile = null;
 foreach ($possibleDbFiles as $candidate) {
@@ -24,6 +36,10 @@ foreach ($possibleDbFiles as $candidate) {
 
 if ($dbFile === null) {
     fwrite(STDERR, "Database bootstrap file not found. Expected api/db.php in the project root.\n");
+    fwrite(STDERR, "Checked roots:\n");
+    foreach ($roots as $root) {
+        fwrite(STDERR, "  - $root\n");
+    }
     exit(1);
 }
 
