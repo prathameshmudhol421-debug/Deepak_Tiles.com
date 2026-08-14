@@ -19,14 +19,39 @@ declare(strict_types=1);
  *
  * Default to the local XAMPP/MySQL setup used in this workspace.
  * Override via environment variables for Supabase, Render, or another server.
+ *
+ * If DATABASE_URL is set (Supabase / Render / Heroku style), it takes
+ * precedence and we parse it into DB_DRIVER / DB_HOST / DB_PORT / DB_NAME
+ * / DB_USER / DB_PASS automatically.
  */
-define('DB_DRIVER',     getenv('DB_DRIVER')     ?: 'mysql');
-define('DB_HOST',       getenv('DB_HOST')       ?: '127.0.0.1');
-define('DB_PORT',       getenv('DB_PORT')       ?: (getenv('DB_DRIVER') === 'pgsql' ? '5432' : '3306'));
-define('DB_NAME',       getenv('DB_NAME')       ?: 'public');
-define('DB_USER',       getenv('DB_USER')       ?: 'root');
-define('DB_PASS',       getenv('DB_PASS')       ?: '');
+function parse_database_url(): array {
+    $url = getenv('DATABASE_URL') ?: '';
+    if ($url === '') return [];
+    $parts = parse_url($url);
+    if (!$parts || empty($parts['host'])) return [];
+    $scheme = $parts['scheme'] ?? 'postgresql';
+    $driver = ($scheme === 'postgresql' || $scheme === 'postgres') ? 'pgsql' : 'mysql';
+    return [
+        'driver' => $driver,
+        'host'   => $parts['host'],
+        'port'   => isset($parts['port']) ? (string)$parts['port'] : ($driver === 'pgsql' ? '5432' : '3306'),
+        'name'   => isset($parts['path']) ? ltrim($parts['path'], '/') : ($driver === 'pgsql' ? 'postgres' : ''),
+        'user'   => isset($parts['user']) ? urldecode($parts['user']) : '',
+        'pass'   => isset($parts['pass']) ? urldecode($parts['pass']) : '',
+    ];
+}
+
+$_dburl = parse_database_url();
+
+define('DB_DRIVER',     getenv('DB_DRIVER')     ?: ($_dburl['driver'] ?? 'mysql'));
+define('DB_HOST',       getenv('DB_HOST')       ?: ($_dburl['host']   ?? '127.0.0.1'));
+define('DB_PORT',       getenv('DB_PORT')       ?: ($_dburl['port']   ?? (getenv('DB_DRIVER') === 'pgsql' || ($_dburl['driver'] ?? '') === 'pgsql' ? '5432' : '3306')));
+define('DB_NAME',       getenv('DB_NAME')       ?: ($_dburl['name']   ?: 'public'));
+define('DB_USER',       getenv('DB_USER')       ?: ($_dburl['user']   ?: 'root'));
+define('DB_PASS',       getenv('DB_PASS')       ?: ($_dburl['pass']   ?: ''));
 define('SHOP_USERNAME', getenv('SHOP_USERNAME') ?: 'Deepak');
+
+unset($_dburl);
 
 function db(): PDO {
     static $pdo = null;
@@ -247,6 +272,16 @@ function ensure_schema(PDO $pdo): void {
         )");
 
         $pdo->exec("CREATE INDEX IF NOT EXISTS idx_target ON public.review_replies(target_kind, target_id, created_at)");
+
+        // Auto-seed shopkeeper credentials on first deploy.
+        // Username 'Deepak', password 'Deepak@123' (bcrypt hash below).
+        // Safe to run on every boot: ON CONFLICT updates the row in place.
+        $pdo->exec("INSERT INTO public.shopkeeper_credentials (username, password_hash, failed_attempts, locked_until)
+                    VALUES ('Deepak', '\$2y$10\$sdJ19eUU1HjOqriN7ZhXxuFY6Jh99vBD5SS.lMJPtojMGAX2cz016', 0, NULL)
+                    ON CONFLICT (username) DO UPDATE
+                    SET password_hash = EXCLUDED.password_hash,
+                        failed_attempts = 0,
+                        locked_until = NULL");
 
         $pdo->exec("DROP TABLE IF EXISTS guest_identities");
         $pdo->exec("DROP TABLE IF EXISTS saves");
