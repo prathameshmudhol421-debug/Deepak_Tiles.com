@@ -12,8 +12,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ENV TRUSTED_PROXY_HEADER="HTTP_X_FORWARDED_PROTO"
 
 # Allow .htaccess overrides + honour X-Forwarded-* headers from Render's proxy.
-RUN a2enmod rewrite headers
+RUN a2enmod rewrite headers \
+    && echo 'ServerName localhost' >> /etc/apache2/apache2.conf
 
+    
 # Apache: parse .htaccess so router.php via index.html works (no-op here, kept for safety).
 COPY . /var/www/html/
 
