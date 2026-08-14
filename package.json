@@ -1,1 +1,16 @@
-{}
+{
+  "name": "deepak-tiles-granite",
+  "version": "1.0.0",
+  "description": "Deepak Tiles & Granite - E-commerce platform with product listings, blogs, and customer reviews",
+  "main": "index.html",
+  "scripts": {
+    "start": "php -S 0.0.0.0:8000 -t . router.php",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["tiles", "granite", "ecommerce", "php"],
+  "author": "Deepak",
+  "license": "MIT",
+  "engines": {
+    "php": ">=8.3"
+  }
+}
