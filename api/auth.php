@@ -16,6 +16,15 @@
 declare(strict_types=1);
 require_once __DIR__ . '/db.php';
 
+/* ===== Global JSON Error Helper ===== */
+if (!function_exists('json_err')) {
+    function json_err(string $msg, int $code = 400): void {
+        http_response_code($code);
+        echo json_encode(['error' => $msg]);
+        exit;
+    }
+}
+
 start_session_once();
 header('Content-Type: application/json');
 header('X-Content-Type-Options: nosniff');
@@ -37,13 +46,7 @@ try {
             break;
         }
 
-        /* ---------- SHOPKEEPER LOGIN ----------
-         *
-         * The shopkeeper is the only privileged account on the site, and they
-         * often sign in from the same IP as visitors (a shop PC). We deliberately
-         * do NOT apply any rate limiting or account lockout here: a wrong
-         * password returns 401, and the shopkeeper can try again immediately.
-         * The bcrypt password hash is what protects the account. */
+        /* ---------- SHOPKEEPER LOGIN ---------- */
         case 'shopLogin': {
             $data = json_input();
             $u    = trim($data['username'] ?? '');
@@ -60,24 +63,20 @@ try {
             $passwordOk = password_verify($p, $creds['password_hash']);
 
             if (!$usernameOk || !$passwordOk) {
-                // Wrong credentials. We do NOT lock the account or rate-limit the
-                // IP — the shopkeeper can try again straight away. bcrypt slows
-                // brute-force at the password layer; that's the only line of
-                // defence we need here.
                 json_err('Invalid shopkeeper username or password', 401);
             }
 
-            // Successful login. Clear any leftover failure state so the row
-            // stays tidy (the fields exist for backward compatibility with
-            // older installs that used them, but they're no longer enforced).
-            db()->prepare('UPDATE shopkeeper_credentials SET failed_attempts = 0, locked_until = NULL WHERE id = ?')
+            // Successful login. Clear failure state.
+            db()->prepare('UPDATE public.shopkeeper_credentials SET failed_attempts = 0, locked_until = NULL WHERE id = ?')
                 ->execute([$creds['id']]);
+                
             session_regenerate_id(true);
             $_SESSION['shopkeeper'] = [
                 'username' => $creds['username'],
                 'role'     => 'shopkeeper',
             ];
             $_SESSION['csrf'] = bin2hex(random_bytes(32));
+            
             echo json_encode([
                 'ok'         => true,
                 'shopkeeper' => $_SESSION['shopkeeper'],
@@ -108,7 +107,10 @@ try {
 
         /* ---------- PUBLIC SHOP PROFILE ---------- */
         case 'shopProfile': {
-            if ($method === 'PUT') return update_shop_profile();
+            if ($method === 'PUT') {
+                update_shop_profile();
+                break;
+            }
             echo json_encode(['ok' => true, 'profile' => shop_profile()]);
             break;
         }
@@ -129,26 +131,26 @@ function update_shop_profile(): void {
     $allowed = ['shop_name', 'owner_name', 'mobile', 'email', 'contact_note', 'location', 'about', 'logo_path'];
     $sets = [];
     $vals = [];
+    
     foreach ($allowed as $k) {
         if (array_key_exists($k, $data)) {
             $sets[] = "$k = ?";
             $vals[] = $data[$k] !== null ? trim((string) $data[$k]) : null;
         }
     }
+    
     if (!$sets) {
         echo json_encode(['ok' => true, 'profile' => shop_profile()]);
         return;
     }
+    
+    // Explicitly update updated_at for PostgreSQL
+    $sets[] = "updated_at = NOW()";
+    
     $vals[] = 1; // WHERE id = 1
-    $sql = 'UPDATE shop_profile SET ' . implode(', ', $sets) . ' WHERE id = ?';
+    $sql = 'UPDATE public.shop_profile SET ' . implode(', ', $sets) . ' WHERE id = ?';
     $stmt = db()->prepare($sql);
     $stmt->execute($vals);
 
     echo json_encode(['ok' => true, 'profile' => refresh_shop_profile_cache()]);
-}
-
-function json_err(string $msg, int $code = 400): void {
-    http_response_code($code);
-    echo json_encode(['error' => $msg]);
-    exit;
 }

@@ -21,17 +21,16 @@
 
 declare(strict_types=1);
 
-if (PHP_SAPI === 'cli' || PHP_SAPI === 'cli-server') {
-    // OK
-} else {
+// Strictly restrict execution to Command Line Interface (CLI)
+if (PHP_SAPI !== 'cli') {
     http_response_code(403);
     echo "This script must be run from the command line.";
-    exit;
+    exit(1);
 }
 
 require_once __DIR__ . '/db.php';
 
-$argv = $_SERVER['argv'];
+$argv = $_SERVER['argv'] ?? [];
 array_shift($argv); // strip script name
 $cmd = $argv[0] ?? '';
 
@@ -58,8 +57,9 @@ switch ($cmd) {
 
     case 'rotate':
         // Rotate the default shopkeeper password with a freshly generated random one.
+        $defaultUser = defined('SHOP_USERNAME') ? SHOP_USERNAME : 'admin';
         $pass = bin2hex(random_bytes(12)); // 24 hex chars
-        set_credentials(SHOP_USERNAME, $pass, verbose: true);
+        set_credentials($defaultUser, $pass, true);
         break;
 
     case 'status':
@@ -84,10 +84,14 @@ function set_credentials(string $username, string $plain, bool $verbose = false)
     $hash = password_hash($plain, PASSWORD_DEFAULT);
     $pdo  = db();
 
+    // PostgreSQL / Supabase compatible UPSERT query
     $stmt = $pdo->prepare(
-        'INSERT INTO shopkeeper_credentials (username, password_hash, failed_attempts, locked_until)
+        'INSERT INTO public.shopkeeper_credentials (username, password_hash, failed_attempts, locked_until)
          VALUES (?, ?, 0, NULL)
-         ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), failed_attempts = 0, locked_until = NULL'
+         ON CONFLICT (username) DO UPDATE 
+         SET password_hash = EXCLUDED.password_hash, 
+             failed_attempts = 0, 
+             locked_until = NULL'
     );
     $stmt->execute([$username, $hash]);
 
@@ -103,7 +107,7 @@ function set_credentials(string $username, string $plain, bool $verbose = false)
 
 function status(): void {
     $pdo = db();
-    $rows = $pdo->query('SELECT username, email, last_changed, failed_attempts, locked_until FROM shopkeeper_credentials')->fetchAll();
+    $rows = $pdo->query('SELECT username, email, last_changed, failed_attempts, locked_until FROM public.shopkeeper_credentials')->fetchAll();
     if (!$rows) {
         echo "No shopkeeper credentials configured yet.\n";
         echo "Run: php api/setup_shopkeeper.php set Deepak yourpassword\n";
@@ -112,7 +116,7 @@ function status(): void {
     foreach ($rows as $r) {
         echo "Username:        {$r['username']}\n";
         echo "Recovery email:  " . ($r['email'] ?? '— (not set)') . "\n";
-        echo "Last changed:    {$r['last_changed']}\n";
+        echo "Last changed:    " . ($r['last_changed'] ?? '—') . "\n";
         echo "Failed attempts: {$r['failed_attempts']}\n";
         echo "Locked until:    " . ($r['locked_until'] ?? '—') . "\n";
         echo "----\n";
@@ -122,7 +126,7 @@ function status(): void {
 function set_recovery_email(string $username, string $email): void {
     $pdo = db();
     $stmt = $pdo->prepare(
-        'UPDATE shopkeeper_credentials SET email = ? WHERE username = ?'
+        'UPDATE public.shopkeeper_credentials SET email = ? WHERE username = ?'
     );
     $stmt->execute([$email, $username]);
 

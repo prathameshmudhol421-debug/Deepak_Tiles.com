@@ -15,7 +15,9 @@
  *   - Stores under a random name; never trusts the original filename.
  */
 declare(strict_types=1);
+
 require_once __DIR__ . '/db.php';
+
 header('Content-Type: application/json');
 header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: same-origin');
@@ -23,8 +25,10 @@ header('Referrer-Policy: same-origin');
 start_session_once();
 csrf_validate();
 
-$user = $_SESSION['user']       ?? null;
-$shop = $_SESSION['shopkeeper'] ?? null;
+// Identity Check: Check for array sessions or individual ID session flags
+$user = $_SESSION['user'] ?? $_SESSION['user_id'] ?? null;
+$shop = $_SESSION['shopkeeper'] ?? $_SESSION['shopkeeper_id'] ?? null;
+
 if (!$user && !$shop) {
     http_response_code(401);
     echo json_encode(['error' => 'Sign in required']);
@@ -38,9 +42,9 @@ if (!isset($_FILES['image'])) {
 }
 
 $file = $_FILES['image'];
-if ($file['error'] !== UPLOAD_ERR_OK) {
+if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
     http_response_code(400);
-    echo json_encode(['error' => 'Upload error code ' . $file['error']]);
+    echo json_encode(['error' => 'Upload error code ' . ($file['error'] ?? UPLOAD_ERR_NO_FILE)]);
     exit;
 }
 
@@ -63,15 +67,15 @@ $allowed = [
     'image/gif'  => 'gif',
 ];
 
-// First gate: MIME type from the actual file content (not what the client claims).
+// First gate: MIME type from the actual file content
 $mime = mime_content_type($file['tmp_name']);
-if (!isset($allowed[$mime])) {
+if (!$mime || !isset($allowed[$mime])) {
     http_response_code(400);
-    echo json_encode(['error' => 'Unsupported image type: ' . $mime]);
+    echo json_encode(['error' => 'Unsupported image type: ' . ($mime ?: 'unknown')]);
     exit;
 }
 
-// Second gate: getimagesize — proves the file is a real image of the claimed type.
+// Second gate: getimagesize — proves the file is a real image of the claimed type
 $info = @getimagesize($file['tmp_name']);
 if (!$info) {
     http_response_code(400);
@@ -84,18 +88,19 @@ if (!isset($allowed[$info['mime']])) {
     exit;
 }
 
-// Reject SVGs entirely — they can contain <script> and execute in the browser.
-if (strtolower(pathinfo($file['name'], PATHINFO_EXTENSION)) === 'svg') {
+// Reject SVGs entirely — they can contain <script> and execute in the browser
+$originalExt = strtolower(pathinfo($file['name'] ?? '', PATHINFO_EXTENSION));
+if ($originalExt === 'svg') {
     http_response_code(400);
     echo json_encode(['error' => 'SVG uploads are not allowed']);
     exit;
 }
 
-// Sanitize the user's original filename and ignore its extension — we set
-// the extension based on the verified MIME so a polyglot file can't sneak
-// in a .php extension.
-$prefix = $user ? 'u' . $user['id'] : 'shop';
-$name   = 'img_' . $prefix . '_' . bin2hex(random_bytes(8)) . '.' . $allowed[$info['mime']];
+// Prefix identification
+$userIdStr = is_array($user) ? (string) ($user['id'] ?? 'user') : (string) $user;
+$prefix    = $user ? 'u' . preg_replace('/[^a-zA-Z0-9]/', '', $userIdStr) : 'shop';
+$extension = $allowed[$info['mime']];
+$name      = 'img_' . $prefix . '_' . bin2hex(random_bytes(8)) . '.' . $extension;
 
 $uploadDir = __DIR__ . '/../uploads';
 if (!is_dir($uploadDir)) {
@@ -109,7 +114,7 @@ if (!move_uploaded_file($file['tmp_name'], $dest)) {
     exit;
 }
 
-// Double-check the saved file is still a real image (defense in depth).
+// Double-check the saved file is still a real image (defense in depth)
 $post = @getimagesize($dest);
 if (!$post) {
     @unlink($dest);
@@ -121,4 +126,7 @@ if (!$post) {
 // Ensure the file is not executable. Strip any execute bits.
 @chmod($dest, 0644);
 
-echo json_encode(['ok' => true, 'url' => 'uploads/' . $name]);
+echo json_encode([
+    'ok'  => true,
+    'url' => 'uploads/' . $name,
+]);

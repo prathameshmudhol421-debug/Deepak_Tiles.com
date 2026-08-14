@@ -3,19 +3,46 @@
  * Quick diagnostic: prints the current shop profile row + login instructions.
  * Useful for confirming the rebranding took effect.
  */
-include 'api/db.php';
+declare(strict_types=1);
+
+// Adjust include path depending on whether check_shop.php sits in root or api/
+if (file_exists(__DIR__ . '/api/db.php')) {
+    require_once __DIR__ . '/api/db.php';
+} else {
+    require_once __DIR__ . '/db.php';
+}
+
+$isCli = (PHP_SAPI === 'cli');
+
+if (!$isCli) {
+    header('Content-Type: text/plain; charset=utf-8');
+}
+
 try {
     $pdo = db();
-    $row = $pdo->query('SELECT shop_name, owner_name, mobile, email, location FROM shop_profile WHERE id = 1')->fetch(PDO::FETCH_ASSOC);
+    
+    // PostgreSQL / Supabase schema-qualified query
+    $stmt = $pdo->query('SELECT shop_name, owner_name, mobile, email, location FROM public.shop_profile LIMIT 1');
+    $row  = $stmt ? $stmt->fetch(PDO::FETCH_ASSOC) : null;
+
+    echo "=== Shop Profile Diagnostic ===\n\n";
     echo "Shop name : " . ($row['shop_name']  ?? 'Not set') . "\n";
     echo "Owner     : " . ($row['owner_name'] ?? 'Not set') . "\n";
     echo "Mobile    : " . ($row['mobile']     ?? 'Not set') . "\n";
     echo "Email     : " . ($row['email']      ?? 'Not set') . "\n";
     echo "Location  : " . ($row['location']   ?? 'Not set') . "\n";
-    echo "\nLogin at http://localhost/FARM/index.html\n";
-    echo "  Username: Deepak\n";
-    echo "  Password: Deepak@123\n";
-    echo "  (rotate with: php api\\setup_shopkeeper.php set Deepak <new-password>)\n";
-} catch (Exception $e) {
-    echo "Error: " . $e->getMessage();
+
+    echo "\n=== Shopkeeper Credentials Info ===\n";
+    
+    // Check actual shopkeeper username set in DB
+    $uStmt = $pdo->query('SELECT username FROM public.shopkeeper_credentials LIMIT 1');
+    $userRow = $uStmt ? $uStmt->fetch(PDO::FETCH_ASSOC) : null;
+    $username = $userRow['username'] ?? 'Deepak';
+
+    echo "Configured Username: {$username}\n";
+    echo "To set/update password, run from project root:\n";
+    echo "  php api/setup_shopkeeper.php set {$username} <your-password>\n";
+
+} catch (Throwable $e) {
+    echo "Database Error: " . $e->getMessage() . "\n";
 }
