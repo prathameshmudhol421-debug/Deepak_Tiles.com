@@ -10,25 +10,44 @@ if (php_sapi_name() !== 'cli') {
     header('Content-Type: text/plain; charset=utf-8');
 }
 
-$roots = array_filter([
+$roots = [];
+foreach ([
     __DIR__,
-    dirname(__DIR__),
     getcwd(),
     $_SERVER['DOCUMENT_ROOT'] ?? '',
     dirname($_SERVER['SCRIPT_FILENAME'] ?? __DIR__),
+    dirname(__DIR__),
     '/var/www/html',
-    '/var/www/html/FARM',
+    '/var/www',
+    'C:/xampp/htdocs',
     'C:/xampp/htdocs/FARM',
-], static fn($v) => $v !== '' && $v !== false);
+] as $root) {
+    if ($root === '' || $root === false) {
+        continue;
+    }
 
-$roots = array_values(array_unique(array_map(static fn($v) => rtrim($v, DIRECTORY_SEPARATOR), $roots)));
+    $normalized = str_replace('\\', '/', rtrim($root, DIRECTORY_SEPARATOR));
+    if ($normalized !== '') {
+        $roots[] = $normalized;
+    }
 
+    $parent = $normalized;
+    for ($i = 0; $i < 8; $i++) {
+        $next = dirname($parent);
+        if ($next === $parent) {
+            break;
+        }
+        $roots[] = $next;
+        $parent = $next;
+    }
+}
+
+$roots = array_values(array_unique($roots));
 $possibleDbFiles = [];
 foreach ($roots as $root) {
-    $possibleDbFiles[] = $root . '/api/db.php';
-    $possibleDbFiles[] = $root . '/db.php';
-    $possibleDbFiles[] = $root . '/FARM/api/db.php';
-    $possibleDbFiles[] = $root . '/FARM/db.php';
+    foreach ([$root . '/api/db.php', $root . '/db.php', $root . '/FARM/api/db.php', $root . '/FARM/db.php'] as $candidate) {
+        $possibleDbFiles[] = str_replace('\\', '/', $candidate);
+    }
 }
 
 $dbFile = null;
