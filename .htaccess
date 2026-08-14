@@ -9,12 +9,21 @@ DirectoryIndex index.html
     Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
 </IfModule>
 
-# Force HTTPS in production (enabled after TLS deployment)
+# Force HTTPS in production only when the app is not already behind TLS.
+# Render terminates TLS at the edge and forwards the original scheme in
+# X-Forwarded-Proto, so we must trust that header instead of Apache's internal
+# %{HTTPS} value.
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    # Skip HTTPS redirect on localhost / development
-    RewriteCond %{HTTP_HOST} !^localhost
-    RewriteCond %{HTTP_HOST} !^127\.0\.0\.1
-    RewriteCond %{HTTPS} !=on
-    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+    # If the request is already HTTPS, either directly or through a trusted proxy,
+    # do not redirect again.
+    RewriteCond %{HTTP:X-Forwarded-Proto} =https [OR]
+    RewriteCond %{HTTPS} =on
+    RewriteRule ^ - [END]
+
+    # Skip HTTPS redirect on localhost / development.
+    RewriteCond %{HTTP_HOST} !^localhost$ [NC]
+    RewriteCond %{HTTP_HOST} !^127\.0\.0\.1$ [NC]
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301,NE]
 </IfModule>
