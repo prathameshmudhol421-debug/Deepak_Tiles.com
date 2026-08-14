@@ -5,12 +5,29 @@
  */
 declare(strict_types=1);
 
-// Adjust include path depending on whether check_shop.php sits in root or api/
-if (file_exists(__DIR__ . '/api/db.php')) {
-    require_once __DIR__ . '/api/db.php';
-} else {
-    require_once __DIR__ . '/db.php';
+$possibleDbFiles = [
+    __DIR__ . '/api/db.php',
+    __DIR__ . '/db.php',
+    dirname(__DIR__) . '/api/db.php',
+    dirname(__DIR__) . '/db.php',
+    '/var/www/html/api/db.php',
+    '/var/www/html/FARM/api/db.php',
+];
+
+$dbFile = null;
+foreach ($possibleDbFiles as $candidate) {
+    if (is_file($candidate)) {
+        $dbFile = $candidate;
+        break;
+    }
 }
+
+if ($dbFile === null) {
+    fwrite(STDERR, "Database bootstrap file not found. Expected api/db.php in the project root.\n");
+    exit(1);
+}
+
+require_once $dbFile;
 
 $isCli = (PHP_SAPI === 'cli');
 

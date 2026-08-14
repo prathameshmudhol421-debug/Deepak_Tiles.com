@@ -10,12 +10,25 @@ if (php_sapi_name() !== 'cli') {
     header('Content-Type: text/plain; charset=utf-8');
 }
 
-// Uses absolute directory path (__DIR__) to ensure api/db.php is always found
-$dbFile = __DIR__ . '/api/db.php';
+$possibleDbFiles = [
+    __DIR__ . '/api/db.php',
+    __DIR__ . '/FARM/api/db.php',
+    dirname(__DIR__) . '/api/db.php',
+    dirname(__DIR__) . '/FARM/api/db.php',
+    '/var/www/html/api/db.php',
+    '/var/www/html/FARM/api/db.php',
+];
 
-if (!file_exists($dbFile)) {
-    echo "✗ File not found: " . $dbFile . "\n";
-    echo "Please check if api/db.php exists in your project repository.\n";
+$dbFile = null;
+foreach ($possibleDbFiles as $candidate) {
+    if (is_file($candidate)) {
+        $dbFile = $candidate;
+        break;
+    }
+}
+
+if ($dbFile === null) {
+    echo "✗ Database bootstrap file not found. Expected api/db.php in the project root.\n";
     exit(1);
 }
 
