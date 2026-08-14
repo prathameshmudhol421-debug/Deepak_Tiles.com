@@ -10,15 +10,9 @@ services:
     startCommand: php -S 0.0.0.0:$PORT -t . router.php
     autoDeploy: true
     envVars:
-      - key: DB_HOST
+      - key: DATABASE_URL
         sync: false
-      - key: DB_PORT
-        value: "3306"
-      - key: DB_NAME
-        value: farm_db
-      - key: DB_USER
-        sync: false
-      - key: DB_PASS
-        sync: false
+      - key: DB_DRIVER
+        value: pgsql
       - key: APP_BASE
         value: /
