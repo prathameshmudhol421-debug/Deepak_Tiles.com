@@ -1,8 +1,7 @@
 <?php
 /**
  * Diagnostic utility script to verify database connectivity.
- * Run via CLI: php test_db.php
- * Or via browser: https://your-app.onrender.com/test_db.php
+ * Run via CLI or Browser.
  */
 
 declare(strict_types=1);
@@ -11,7 +10,16 @@ if (php_sapi_name() !== 'cli') {
     header('Content-Type: text/plain; charset=utf-8');
 }
 
-require_once __DIR__ . '/api/db.php';
+// Uses absolute directory path (__DIR__) to ensure api/db.php is always found
+$dbFile = __DIR__ . '/api/db.php';
+
+if (!file_exists($dbFile)) {
+    echo "✗ File not found: " . $dbFile . "\n";
+    echo "Please check if api/db.php exists in your project repository.\n";
+    exit(1);
+}
+
+require_once $dbFile;
 
 try {
     $pdo = db();
