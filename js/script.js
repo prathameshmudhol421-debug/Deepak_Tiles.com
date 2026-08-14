@@ -306,8 +306,16 @@ document.getElementById('shopLoginForm')?.addEventListener('submit', async (e) =
     const r = await api(`${API.auth}?action=shopLogin`, {
       method: 'POST', body: { username: u.value.trim(), password: p.value }
     });
-    SHOPKEEPER   = r.shopkeeper;
-    SHOP_PROFILE = (await api(`${API.auth}?action=shopProfile`)).profile;
+    SHOPKEEPER = r.shopkeeper || null;
+
+    try {
+      const profileRes = await api(`${API.auth}?action=shopProfile`);
+      SHOP_PROFILE = profileRes.profile || null;
+    } catch (profileErr) {
+      console.warn('Shop profile load after login failed:', profileErr.message);
+      SHOP_PROFILE = SHOP_PROFILE || null;
+    }
+
     updateNavForAuth();
     updateBrand();
     document.getElementById('shopLoginForm').reset();
