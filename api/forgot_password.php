@@ -71,7 +71,7 @@ function action_request_otp(): void {
     }
 
     // Invalidate existing OTPs for this user/shopkeeper
-    db()->prepare('DELETE FROM public.password_otps WHERE target_kind = ? AND target_id = ?')
+    db()->prepare('DELETE FROM ' . db_table('password_otps') . ' WHERE target_kind = ? AND target_id = ?')
         ->execute([$kind, (int) $account['id']]);
 
     // Generate a secure 6-digit OTP
@@ -80,7 +80,7 @@ function action_request_otp(): void {
     $expires = date('Y-m-d H:i:s', time() + OTP_TTL_SECONDS);
 
     db()->prepare(
-        'INSERT INTO public.password_otps (target_kind, target_id, email, otp_hash, expires_at)
+        'INSERT INTO ' . db_table('password_otps') . ' (target_kind, target_id, email, otp_hash, expires_at)
          VALUES (?, ?, ?, ?, ?)'
     )->execute([$kind, (int) $account['id'], $email, $hash, $expires]);
 
@@ -116,7 +116,7 @@ function action_verify_otp(): void {
 
     $stmt = db()->prepare(
         "SELECT id, target_kind, target_id, otp_hash, attempts, verified, expires_at
-           FROM public.password_otps
+           FROM " . db_table('password_otps') . "
           WHERE email = ? AND target_kind = ?
           ORDER BY id DESC LIMIT 1"
     );
@@ -133,11 +133,11 @@ function action_verify_otp(): void {
 
     // Increment attempt counter
     $newAttempts = (int) $rec['attempts'] + 1;
-    db()->prepare('UPDATE public.password_otps SET attempts = ? WHERE id = ?')
+    db()->prepare('UPDATE ' . db_table('password_otps') . ' SET attempts = ? WHERE id = ?')
         ->execute([$newAttempts, (int) $rec['id']]);
 
     if ($newAttempts > OTP_MAX_ATTEMPTS) {
-        db()->prepare('DELETE FROM public.password_otps WHERE id = ?')->execute([(int) $rec['id']]);
+        db()->prepare('DELETE FROM ' . db_table('password_otps') . ' WHERE id = ?')->execute([(int) $rec['id']]);
         json_err('Too many wrong attempts. Request a new code.', 429);
     }
 
@@ -147,7 +147,7 @@ function action_verify_otp(): void {
 
     // Mark code verified and issue single-use reset token
     $token = bin2hex(random_bytes(32));
-    db()->prepare('UPDATE public.password_otps SET verified = TRUE, reset_token = ? WHERE id = ?')
+    db()->prepare('UPDATE ' . db_table('password_otps') . ' SET verified = TRUE, reset_token = ? WHERE id = ?')
         ->execute([$token, (int) $rec['id']]);
 
     $_SESSION['csrf'] = bin2hex(random_bytes(32));
@@ -173,7 +173,7 @@ function action_reset_password(): void {
     if ($pass !== $confirm)                          json_err('Passwords do not match');
 
     $stmt = db()->prepare(
-        "SELECT id, target_id, expires_at FROM public.password_otps
+        "SELECT id, target_id, expires_at FROM " . db_table('password_otps') . "
           WHERE email = ? AND target_kind = ? AND (verified = TRUE OR verified = '1') AND reset_token = ?
           ORDER BY id DESC LIMIT 1"
     );
@@ -190,17 +190,17 @@ function action_reset_password(): void {
     $hash = password_hash($pass, PASSWORD_DEFAULT);
 
     if ($kind === 'user') {
-        db()->prepare('UPDATE public.users SET password_hash = ? WHERE id = ?')
+        db()->prepare('UPDATE ' . db_table('users') . ' SET password_hash = ? WHERE id = ?')
             ->execute([$hash, (int) $rec['target_id']]);
     } else {
-        db()->prepare('UPDATE public.shopkeeper_credentials
+        db()->prepare('UPDATE ' . db_table('shopkeeper_credentials') . '
                           SET password_hash = ?, failed_attempts = 0, locked_until = NULL
                         WHERE id = ?')
             ->execute([$hash, (int) $rec['target_id']]);
     }
 
     // Burn OTP row after successful password reset
-    db()->prepare('DELETE FROM public.password_otps WHERE id = ?')->execute([(int) $rec['id']]);
+    db()->prepare('DELETE FROM ' . db_table('password_otps') . ' WHERE id = ?')->execute([(int) $rec['id']]);
 
     $_SESSION['csrf'] = bin2hex(random_bytes(32));
     echo json_encode(['ok' => true, 'csrf' => $_SESSION['csrf']]);
@@ -212,9 +212,9 @@ function action_reset_password(): void {
 
 function find_account_for_reset(string $email, string $kind): ?array {
     if ($kind === 'user') {
-        $stmt = db()->prepare('SELECT id, email FROM public.users WHERE email = ?');
+        $stmt = db()->prepare('SELECT id, email FROM ' . db_table('users') . ' WHERE email = ?');
     } else {
-        $stmt = db()->prepare('SELECT id, email FROM public.shopkeeper_credentials WHERE email = ?');
+        $stmt = db()->prepare('SELECT id, email FROM ' . db_table('shopkeeper_credentials') . ' WHERE email = ?');
     }
     $stmt->execute([$email]);
     $row = $stmt->fetch();

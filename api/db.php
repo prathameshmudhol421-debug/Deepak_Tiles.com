@@ -45,8 +45,8 @@ $_dburl = parse_database_url();
 $parsedDriver = $_dburl['driver'] ?? 'mysql';
 $parsedHost   = $_dburl['host'] ?? '127.0.0.1';
 $parsedPort   = $_dburl['port'] ?? (getenv('DB_DRIVER') === 'pgsql' || $parsedDriver === 'pgsql' ? '5432' : '3306');
-// For Supabase/PostgreSQL: default database is 'postgres', not 'public'
-$parsedName   = $_dburl['name'] ?: ($parsedDriver === 'pgsql' ? 'postgres' : 'public');
+// For local XAMPP/MySQL, default to the project database used in farm.sql.
+$parsedName   = $_dburl['name'] ?? (($parsedDriver === 'pgsql') ? 'postgres' : 'farm_db');
 $parsedUser   = $_dburl['user'] ?? 'root';
 $parsedPass   = $_dburl['pass'] ?? '';
 
@@ -58,6 +58,10 @@ define('DB_USER',       getenv('DB_USER')       ?: $parsedUser);
 define('DB_PASS',       getenv('DB_PASS')       ?: $parsedPass);
 define('SHOP_USERNAME', getenv('SHOP_USERNAME') ?: 'Deepak');
 
+function db_table(string $name): string {
+    return DB_DRIVER === 'pgsql' ? 'public.' . $name : $name;
+}
+
 unset($_dburl);
 
 function db(): PDO {
@@ -67,8 +71,8 @@ function db(): PDO {
     $driver = DB_DRIVER;
     $host   = DB_HOST;
     $port   = DB_PORT;
-    // For Supabase: default to 'postgres' database
-    $dbname = DB_NAME ?: ($driver === 'pgsql' ? 'postgres' : 'public');
+    // Default to the project MySQL database when running locally.
+    $dbname = DB_NAME ?: ($driver === 'pgsql' ? 'postgres' : 'farm_db');
 
     $opts = [
         PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
@@ -517,12 +521,12 @@ function csrf_validate(): void {
     $csrfFree = in_array($action, ['signup', 'signin', 'shopLogin', 'csrf'], true);
 
     $provided = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+    if ($provided === '' && !empty($_POST['csrf'])) {
+        $provided = (string) $_POST['csrf'];
+    }
     if ($provided === '') {
         $body = json_input();
         $provided = (string)($body['csrf'] ?? '');
-    }
-    if ($provided === '' && !empty($_POST['csrf'])) {
-        $provided = (string) $_POST['csrf'];
     }
     if ($csrfFree) return;
 
@@ -533,6 +537,28 @@ function csrf_validate(): void {
         echo json_encode(['error' => 'CSRF token missing or invalid']);
         exit;
     }
+}
+
+function raw_request_body(): string {
+    static $cached = null;
+    if ($cached !== null) return $cached;
+
+    $raw = fopen('php://input', 'rb');
+    if ($raw === false) {
+        $cached = '';
+        return $cached;
+    }
+
+    $buffer = '';
+    while (!feof($raw)) {
+        $chunk = fread($raw, 8192);
+        if ($chunk === false || $chunk === '') break;
+        $buffer .= $chunk;
+    }
+    fclose($raw);
+
+    $cached = $buffer;
+    return $cached;
 }
 
 /* ===== Rate limiting (PostgreSQL compatible) ===== */
@@ -605,7 +631,7 @@ function shop_profile(): array {
     static $cache = null;
     if ($cache === null) {
         try {
-            $row = db()->query('SELECT * FROM public.shop_profile WHERE id = 1')->fetch();
+            $row = db()->query('SELECT * FROM ' . db_table('shop_profile') . ' WHERE id = 1')->fetch();
             if (!$row) {
                 $cache = [
                     'id' => 1, 'shop_name' => 'Depak Tiles & Granite', 'owner_name' => 'Depak',
@@ -628,12 +654,12 @@ function shop_profile(): array {
 }
 
 function refresh_shop_profile_cache(): array {
-    $row = db()->query('SELECT * FROM public.shop_profile WHERE id = 1')->fetch();
+    $row = db()->query('SELECT * FROM ' . db_table('shop_profile') . ' WHERE id = 1')->fetch();
     return $row ?: shop_profile();
 }
 
 function json_input(): array {
-    $raw = file_get_contents('php://input');
+    $raw = raw_request_body();
     $data = json_decode($raw ?: '', true);
     return is_array($data) ? $data : [];
 }
@@ -641,7 +667,7 @@ function json_input(): array {
 /* ===== Shopkeeper credential lookup ===== */
 function shopkeeper_credentials(): ?array {
     try {
-        $stmt = db()->prepare('SELECT * FROM public.shopkeeper_credentials WHERE username = ?');
+        $stmt = db()->prepare('SELECT * FROM ' . db_table('shopkeeper_credentials') . ' WHERE username = ?');
         $stmt->execute([SHOP_USERNAME]);
         $row = $stmt->fetch();
         return $row ?: null;

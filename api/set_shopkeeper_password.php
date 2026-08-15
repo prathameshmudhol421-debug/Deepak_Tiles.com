@@ -68,15 +68,24 @@ $hash = password_hash($password, PASSWORD_DEFAULT);
 $pdo  = db();
 
 try {
-    $stmt = $pdo->prepare(
-        'INSERT INTO public.shopkeeper_credentials (username, password_hash, failed_attempts, locked_until)
-         VALUES (?, ?, 0, NULL)
-         ON CONFLICT (username) DO UPDATE
-         SET password_hash = EXCLUDED.password_hash,
-             failed_attempts = 0,
-             locked_until = NULL'
-    );
-    $stmt->execute([$username, $hash]);
+    if (DB_DRIVER === 'pgsql') {
+        $stmt = $pdo->prepare(
+            'INSERT INTO public.shopkeeper_credentials (username, password_hash, failed_attempts, locked_until)
+             VALUES (?, ?, 0, NULL)
+             ON CONFLICT (username) DO UPDATE
+             SET password_hash = EXCLUDED.password_hash,
+                 failed_attempts = 0,
+                 locked_until = NULL'
+        );
+        $stmt->execute([$username, $hash]);
+    } else {
+        $stmt = $pdo->prepare(
+            'INSERT INTO ' . db_table('shopkeeper_credentials') . ' (username, password_hash, failed_attempts, locked_until)
+             VALUES (?, ?, 0, NULL)
+             ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), failed_attempts = 0, locked_until = NULL'
+        );
+        $stmt->execute([$username, $hash]);
+    }
 
     echo json_encode([
         'ok'       => true,

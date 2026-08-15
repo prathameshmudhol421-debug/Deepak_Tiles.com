@@ -67,7 +67,7 @@ try {
             }
 
             // Successful login. Clear failure state.
-            db()->prepare('UPDATE public.shopkeeper_credentials SET failed_attempts = 0, locked_until = NULL WHERE id = ?')
+            db()->prepare('UPDATE ' . db_table('shopkeeper_credentials') . ' SET failed_attempts = 0, locked_until = NULL WHERE id = ?')
                 ->execute([$creds['id']]);
                 
             session_regenerate_id(true);
@@ -148,7 +148,7 @@ function update_shop_profile(): void {
     $sets[] = "updated_at = NOW()";
     
     $vals[] = 1; // WHERE id = 1
-    $sql = 'UPDATE public.shop_profile SET ' . implode(', ', $sets) . ' WHERE id = ?';
+    $sql = 'UPDATE ' . db_table('shop_profile') . ' SET ' . implode(', ', $sets) . ' WHERE id = ?';
     $stmt = db()->prepare($sql);
     $stmt->execute($vals);
 

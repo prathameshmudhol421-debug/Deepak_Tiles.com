@@ -84,16 +84,24 @@ function set_credentials(string $username, string $plain, bool $verbose = false)
     $hash = password_hash($plain, PASSWORD_DEFAULT);
     $pdo  = db();
 
-    // PostgreSQL / Supabase compatible UPSERT query
-    $stmt = $pdo->prepare(
-        'INSERT INTO public.shopkeeper_credentials (username, password_hash, failed_attempts, locked_until)
-         VALUES (?, ?, 0, NULL)
-         ON CONFLICT (username) DO UPDATE 
-         SET password_hash = EXCLUDED.password_hash, 
-             failed_attempts = 0, 
-             locked_until = NULL'
-    );
-    $stmt->execute([$username, $hash]);
+    if (DB_DRIVER === 'pgsql') {
+        $stmt = $pdo->prepare(
+            'INSERT INTO public.shopkeeper_credentials (username, password_hash, failed_attempts, locked_until)
+             VALUES (?, ?, 0, NULL)
+             ON CONFLICT (username) DO UPDATE
+             SET password_hash = EXCLUDED.password_hash,
+                 failed_attempts = 0,
+                 locked_until = NULL'
+        );
+        $stmt->execute([$username, $hash]);
+    } else {
+        $stmt = $pdo->prepare(
+            'INSERT INTO ' . db_table('shopkeeper_credentials') . ' (username, password_hash, failed_attempts, locked_until)
+             VALUES (?, ?, 0, NULL)
+             ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), failed_attempts = 0, locked_until = NULL'
+        );
+        $stmt->execute([$username, $hash]);
+    }
 
     echo "✓ Shopkeeper credentials saved for username: {$username}\n";
     if ($verbose) {
@@ -107,7 +115,7 @@ function set_credentials(string $username, string $plain, bool $verbose = false)
 
 function status(): void {
     $pdo = db();
-    $rows = $pdo->query('SELECT username, email, last_changed, failed_attempts, locked_until FROM public.shopkeeper_credentials')->fetchAll();
+    $rows = $pdo->query('SELECT username, email, last_changed, failed_attempts, locked_until FROM ' . db_table('shopkeeper_credentials'))->fetchAll();
     if (!$rows) {
         echo "No shopkeeper credentials configured yet.\n";
         echo "Run: php api/setup_shopkeeper.php set Deepak yourpassword\n";
@@ -126,7 +134,7 @@ function status(): void {
 function set_recovery_email(string $username, string $email): void {
     $pdo = db();
     $stmt = $pdo->prepare(
-        'UPDATE public.shopkeeper_credentials SET email = ? WHERE username = ?'
+        'UPDATE ' . db_table('shopkeeper_credentials') . ' SET email = ? WHERE username = ?'
     );
     $stmt->execute([$email, $username]);
 

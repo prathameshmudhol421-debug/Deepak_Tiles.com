@@ -109,7 +109,7 @@ function list_comments(int $productId): void {
         SELECT c.id, c.body, c.created_at,
                COALESCE(NULLIF(c.guest_name, ''), 'Guest') AS display_name,
                c.guest_email_hash
-        FROM public.comments c
+        FROM " . db_table('comments') . " c
         WHERE c.product_id = ?
         ORDER BY c.created_at DESC
         LIMIT 500
@@ -122,7 +122,7 @@ function list_comments(int $productId): void {
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
         $r = db()->prepare("
             SELECT id, target_id, reply_body AS body, reply_by, created_at
-            FROM public.review_replies
+            FROM " . db_table('review_replies') . "
             WHERE target_kind = 'comment' AND target_id IN ($placeholders)
             ORDER BY created_at ASC
         ");
@@ -163,7 +163,7 @@ function add_comment(array $data): void {
     if (!$exists->fetchColumn()) json_err('Product not found', 404);
 
     $stmt = $pdo->prepare(
-        'INSERT INTO public.comments (product_id, user_id, body, guest_name, guest_email_hash)
+        'INSERT INTO ' . db_table('comments') . ' (product_id, user_id, body, guest_name, guest_email_hash)
          VALUES (?, NULL, ?, ?, ?)'
     );
     $stmt->execute([$pid, $body, $name, $hash ?: null]);
@@ -194,22 +194,22 @@ function toggle_like(array $data): void {
     if ($hash === '') json_err('Email is required to like (used only for your identity; never shared).');
 
     $pdo = db();
-    $exists = $pdo->prepare('SELECT 1 FROM public.products WHERE id = ?');
+    $exists = $pdo->prepare('SELECT 1 FROM ' . db_table('products') . ' WHERE id = ?');
     $exists->execute([$pid]);
     if (!$exists->fetchColumn()) json_err('Product not found', 404);
 
-    $sel = $pdo->prepare('SELECT id FROM public.likes WHERE product_id = ? AND guest_email_hash = ?');
+    $sel = $pdo->prepare('SELECT id FROM ' . db_table('likes') . ' WHERE product_id = ? AND guest_email_hash = ?');
     $sel->execute([$pid, $hash]);
     if ($row = $sel->fetch()) {
-        $pdo->prepare('DELETE FROM public.likes WHERE id = ?')->execute([$row['id']]);
+        $pdo->prepare('DELETE FROM ' . db_table('likes') . ' WHERE id = ?')->execute([$row['id']]);
         $liked = false;
     } else {
-        $pdo->prepare('INSERT INTO public.likes (product_id, user_id, guest_email_hash) VALUES (?, NULL, ?)')
+        $pdo->prepare('INSERT INTO ' . db_table('likes') . ' (product_id, user_id, guest_email_hash) VALUES (?, NULL, ?)')
             ->execute([$pid, $hash]);
         $liked = true;
     }
     
-    $cntStmt = $pdo->prepare('SELECT COUNT(*) FROM public.likes WHERE product_id = ?');
+    $cntStmt = $pdo->prepare('SELECT COUNT(*) FROM ' . db_table('likes') . ' WHERE product_id = ?');
     $cntStmt->execute([$pid]);
     $count = (int) $cntStmt->fetchColumn();
 

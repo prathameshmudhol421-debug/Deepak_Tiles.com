@@ -59,7 +59,7 @@ try {
 
 function get_all(): void {
     $sql = 'SELECT id, title, body, price, image_path, is_blog, created_at, updated_at 
-            FROM public.products 
+            FROM ' . db_table('products') . ' 
             WHERE is_blog = FALSE 
             ORDER BY created_at DESC LIMIT 200';
     $rows = db()->query($sql)->fetchAll();
@@ -68,7 +68,7 @@ function get_all(): void {
 
 function get_blogs(): void {
     $sql = 'SELECT id, title, body, price, image_path, is_blog, created_at, updated_at
-            FROM public.products 
+            FROM ' . db_table('products') . ' 
             WHERE is_blog = TRUE
             ORDER BY created_at DESC, id DESC LIMIT 200';
     $rows = db()->query($sql)->fetchAll();
@@ -78,7 +78,7 @@ function get_blogs(): void {
 function get_one(int $id, bool $isBlog): void {
     $where = $isBlog ? 'AND is_blog = TRUE' : 'AND is_blog = FALSE';
     $stmt = db()->prepare("SELECT id, title, body, price, image_path, is_blog, created_at, updated_at 
-                           FROM public.products 
+                           FROM " . db_table('products') . " 
                            WHERE id = ? $where");
     $stmt->execute([$id]);
     $row = $stmt->fetch();
@@ -109,7 +109,7 @@ function create(array $data): void {
     if ($title === '') json_err('Title is required');
     if ($body  === '') json_err('Description is required');
 
-    $stmt = db()->prepare('INSERT INTO public.products (title, body, price, image_path, is_blog) VALUES (?, ?, ?, ?, ?)');
+    $stmt = db()->prepare('INSERT INTO ' . db_table('products') . ' (title, body, price, image_path, is_blog) VALUES (?, ?, ?, ?, ?)');
     $stmt->execute([$title, $body, $price, $img, $isBlogBool ? 'true' : 'false']);
 
     echo json_encode(['ok' => true, 'id' => (int) db()->lastInsertId()]);
@@ -119,7 +119,7 @@ function update(int $id, array $data): void {
     if ($id <= 0) json_err('Invalid id');
     require_shopkeeper();
 
-    $stmt = db()->prepare('SELECT id, is_blog FROM public.products WHERE id = ?');
+    $stmt = db()->prepare('SELECT id, is_blog FROM ' . db_table('products') . ' WHERE id = ?');
     $stmt->execute([$id]);
     $row = $stmt->fetch();
     if (!$row) json_err('Not found', 404);
@@ -137,7 +137,7 @@ function update(int $id, array $data): void {
     if ($title === '') json_err('Title is required');
     if ($body  === '') json_err('Description is required');
 
-    $stmt = db()->prepare('UPDATE public.products SET title = ?, body = ?, price = ?, image_path = ?, updated_at = NOW() WHERE id = ?');
+    $stmt = db()->prepare('UPDATE ' . db_table('products') . ' SET title = ?, body = ?, price = ?, image_path = ?, updated_at = NOW() WHERE id = ?');
     $stmt->execute([$title, $body, $price, $img, $id]);
 
     echo json_encode(['ok' => true]);
@@ -147,11 +147,11 @@ function destroy(int $id): void {
     if ($id <= 0) json_err('Invalid id');
     require_shopkeeper();
 
-    $stmt = db()->prepare('SELECT id FROM public.products WHERE id = ?');
+    $stmt = db()->prepare('SELECT id FROM ' . db_table('products') . ' WHERE id = ?');
     $stmt->execute([$id]);
     if (!$stmt->fetch()) json_err('Not found', 404);
 
-    $stmt = db()->prepare('DELETE FROM public.products WHERE id = ?');
+    $stmt = db()->prepare('DELETE FROM ' . db_table('products') . ' WHERE id = ?');
     $stmt->execute([$id]);
 
     echo json_encode(['ok' => true]);

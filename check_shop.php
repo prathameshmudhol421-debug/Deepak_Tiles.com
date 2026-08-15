@@ -73,8 +73,7 @@ if (!$isCli) {
 try {
     $pdo = db();
     
-    // PostgreSQL / Supabase schema-qualified query
-    $stmt = $pdo->query('SELECT shop_name, owner_name, mobile, email, location FROM public.shop_profile LIMIT 1');
+    $stmt = $pdo->query('SELECT shop_name, owner_name, mobile, email, location FROM ' . db_table('shop_profile') . ' LIMIT 1');
     $row  = $stmt ? $stmt->fetch(PDO::FETCH_ASSOC) : null;
 
     echo "=== Shop Profile Diagnostic ===\n\n";
@@ -87,7 +86,7 @@ try {
     echo "\n=== Shopkeeper Credentials Info ===\n";
     
     // Check actual shopkeeper username set in DB
-    $uStmt = $pdo->query('SELECT username FROM public.shopkeeper_credentials LIMIT 1');
+    $uStmt = $pdo->query('SELECT username FROM ' . db_table('shopkeeper_credentials') . ' LIMIT 1');
     $userRow = $uStmt ? $uStmt->fetch(PDO::FETCH_ASSOC) : null;
     $username = $userRow['username'] ?? 'Deepak';
 
