@@ -31,6 +31,39 @@ function parse_database_url(): array {
     if (!$parts || empty($parts['host'])) return [];
     $scheme = $parts['scheme'] ?? 'postgresql';
     $driver = ($scheme === 'postgresql' || $scheme === 'postgres') ? 'pgsql' : 'mysql';
+    // Forward any libpq URL query options (sslmode, channel_binding, sslcert, …)
+    // into the PDO DSN as `key=value` pairs. `endpoint` (Neon SNI fallback) is
+    // only added if the runtime libpq is too old to support SNI.
+    $dsnOptions = [];
+    if (!empty($parts['query'])) {
+        parse_str($parts['query'], $q);
+        // Only forward DSN options that libpq reliably understands across
+        // versions. channel_binding / application_name are not valid DSN keys
+        // in older libpq (XAMPP ships libpq 11).
+        foreach (['sslmode', 'sslrootcert', 'sslcert', 'sslkey', 'connect_timeout'] as $opt) {
+            if (isset($q[$opt])) $dsnOptions[$opt] = (string) $q[$opt];
+        }
+    }
+    if (!function_exists('libpq_version')) {
+        // Old libpq without SNI — for Neon pooler we need to pass endpoint= explicitly.
+        if ($driver === 'pgsql' && substr($parts['host'], -9) === '.neon.tech') {
+            $first = explode('.', $parts['host'])[0];
+            $endpoint = preg_replace('/-pooler$/', '', $first);
+            if ($endpoint !== '' && strpos($endpoint, 'ep-') === 0) {
+                $dsnOptions['endpoint'] = $endpoint;
+            }
+        }
+    } else {
+        $v = libpq_version();
+        $major = (int) (explode('.', $v)[0] ?? 0);
+        if ($major < 14 && $driver === 'pgsql' && substr($parts['host'], -9) === '.neon.tech') {
+            $first = explode('.', $parts['host'])[0];
+            $endpoint = preg_replace('/-pooler$/', '', $first);
+            if ($endpoint !== '' && strpos($endpoint, 'ep-') === 0) {
+                $dsnOptions['endpoint'] = $endpoint;
+            }
+        }
+    }
     return [
         'driver' => $driver,
         'host'   => $parts['host'],
@@ -38,6 +71,7 @@ function parse_database_url(): array {
         'name'   => isset($parts['path']) ? ltrim($parts['path'], '/') : ($driver === 'pgsql' ? 'postgres' : ''),
         'user'   => isset($parts['user']) ? urldecode($parts['user']) : '',
         'pass'   => isset($parts['pass']) ? urldecode($parts['pass']) : '',
+        'options'=> $dsnOptions,
     ];
 }
 
@@ -49,6 +83,7 @@ $parsedPort   = $_dburl['port'] ?? (getenv('DB_DRIVER') === 'pgsql' || $parsedDr
 $parsedName   = $_dburl['name'] ?? (($parsedDriver === 'pgsql') ? 'postgres' : 'farm_db');
 $parsedUser   = $_dburl['user'] ?? 'root';
 $parsedPass   = $_dburl['pass'] ?? '';
+$parsedOpts   = $_dburl['options'] ?? [];
 
 define('DB_DRIVER',     getenv('DB_DRIVER')     ?: $parsedDriver);
 define('DB_HOST',       getenv('DB_HOST')       ?: $parsedHost);
@@ -56,6 +91,7 @@ define('DB_PORT',       getenv('DB_PORT')       ?: $parsedPort);
 define('DB_NAME',       getenv('DB_NAME')       ?: $parsedName);
 define('DB_USER',       getenv('DB_USER')       ?: $parsedUser);
 define('DB_PASS',       getenv('DB_PASS')       ?: $parsedPass);
+define('DB_DSN_OPTIONS',$parsedOpts);
 define('SHOP_USERNAME', getenv('SHOP_USERNAME') ?: 'Deepak');
 
 function db_table(string $name): string {
@@ -83,6 +119,9 @@ function db(): PDO {
     try {
         if ($driver === 'pgsql') {
             $dsn = 'pgsql:host=' . $host . ';port=' . $port . ';dbname=' . $dbname . ';sslmode=require';
+            foreach (DB_DSN_OPTIONS as $k => $v) {
+                $dsn .= ';' . $k . '=' . $v;
+            }
             $pdo = new PDO($dsn, DB_USER, DB_PASS, $opts);
         } else {
             $dsn = 'mysql:host=' . $host . ';port=' . $port . ';dbname=' . $dbname . ';charset=utf8mb4';
