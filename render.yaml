@@ -11,8 +11,10 @@ services:
     autoDeploy: true
     envVars:
       - key: DATABASE_URL
-        sync: false
+        value: postgresql://neondb_owner:npg_JGyzNDL51dph@ep-muddy-silence-b32psz9e-pooler.c-4.ap-southeast-1.aws.neon.tech/Deepak_db?sslmode=require
       - key: DB_DRIVER
         value: pgsql
+      - key: SHOP_USERNAME
+        value: Deepak
       - key: APP_BASE
         value: /
