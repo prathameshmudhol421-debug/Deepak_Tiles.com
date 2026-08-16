@@ -75,7 +75,15 @@ function parse_database_url(): array {
     ];
 }
 
+// Hardcoded Neon fallback so this works even if the Render env var is
+// not set. If you rotate the Neon credentials, update this line too.
+$NEON_FALLBACK_URL = 'postgresql://neondb_owner:npg_JGyzNDL51dph@ep-muddy-silence-b32psz9e-pooler.c-4.ap-southeast-1.aws.neon.tech/Deepak_db?sslmode=require';
+
 $_dburl = parse_database_url();
+if (empty($_dburl) || empty($_dburl['host'])) {
+    putenv('DATABASE_URL=' . $NEON_FALLBACK_URL);
+    $_dburl = parse_database_url();
+}
 $parsedDriver = $_dburl['driver'] ?? 'mysql';
 $parsedHost   = $_dburl['host'] ?? '127.0.0.1';
 $parsedPort   = $_dburl['port'] ?? (getenv('DB_DRIVER') === 'pgsql' || $parsedDriver === 'pgsql' ? '5432' : '3306');
