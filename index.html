@@ -3,18 +3,23 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta google-site-verification: google11f196f1b7368ee0.html />
   <meta name="theme-color" content="#c8102e" />
   <title id="pageTitle">Deepak Tiles &amp; Granite — Products, Stories &amp; More</title>
   <meta name="description" id="pageDescription" content="Premium tiles, granite and marble for your home. Browse our collection, read our latest stories, and find the perfect finish for every room." />
   <meta name="robots" content="index, follow" />
 
+  <!-- Perf: warm up the API host so the first XHR doesn't pay the DNS+TLS cost -->
+  <link rel="preconnect" href="https://deepak-tiles-com-1.onrender.com" crossorigin />
+  <link rel="dns-prefetch" href="https://deepak-tiles-com-1.onrender.com" />
+
   <!-- Open Graph / social sharing -->
   <meta property="og:type"        content="website" />
   <meta property="og:title"       content="Deepak Tiles &amp; Granite" />
   <meta property="og:description" content="Premium tiles, granite and marble for your home." />
-  <meta property="og:image"       content="uploads/shop-logo.png" />
+  <meta property="og:image"       content="uploads/shop-logo.jpg" />
 
-  <link rel="icon" type="image/png" href="uploads/shop-banner.jpg" />
+  <link rel="icon" type="image/jpeg" href="uploads/shop-banner.jpg" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
@@ -302,7 +307,7 @@
                 <div class="drop-empty" id="prodDropEmpty">
                   <p>Click to choose an image (max 5 MB)</p>
                 </div>
-                <img id="prodImagePreview" class="image-preview" alt="Preview" />
+                <img id="prodImagePreview" class="image-preview" alt="Preview" loading="lazy" decoding="async" />
               </div>
             </div>
             <div class="form-group">
@@ -341,7 +346,7 @@
                 <div class="drop-empty" id="blogDropEmpty">
                   <p>Click to choose an image (max 5 MB)</p>
                 </div>
-                <img id="blogImagePreview" class="image-preview" alt="Preview" />
+                <img id="blogImagePreview" class="image-preview" alt="Preview" loading="lazy" decoding="async" />
               </div>
             </div>
             <div class="form-group">

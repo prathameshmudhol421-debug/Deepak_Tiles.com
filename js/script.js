@@ -419,7 +419,7 @@ function renderProductGrid(products) {
   }
   grid.innerHTML = products.map(p => `
     <article class="product-card" data-product-id="${p.id}">
-      <div class="product-thumb" style="background-image:url('${escapeAttr(p.image_path || defaultCover(p.title))}');" onerror="this.style.background='linear-gradient(135deg,#a8e063,#56ab2f)'"></div>
+      <div class="product-thumb" style="${thumbStyle(p.image_path, p.title)}"></div>
       <div class="product-card-body">
         <h3 class="product-card-title">${escapeHtml(p.title)}</h3>
         <p class="product-card-excerpt">${escapeHtml(p.body).slice(0, 140)}${p.body.length > 140 ? '…' : ''}</p>
@@ -457,8 +457,10 @@ async function openProduct(id) {
 
 function renderProductDetail(p, counts) {
   const wrap = document.getElementById('productDetail');
-  const img = p.image_path || defaultCover(p.title);
   const canManage = !!SHOPKEEPER;
+  const featured = p.image_path
+    ? `<img src="${escapeAttr(p.image_path)}" alt="" class="featured-image" loading="lazy" decoding="async" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'featured-image',style:'background:${defaultCover(p.title)}'}))" />`
+    : `<div class="featured-image" style="background:${defaultCover(p.title)}"></div>`;
   wrap.innerHTML = `
     <button class="back-btn" onclick="document.querySelector('[data-view=home]').click()">← Back to products</button>
     <h1 class="article-title">${escapeHtml(p.title)}</h1>
@@ -466,7 +468,7 @@ function renderProductDetail(p, counts) {
       <span class="read-time">${formatDate(p.created_at)}</span>
       <span class="product-price-lg">₹${formatPrice(p.price)}</span>
     </div>
-    <img src="${escapeAttr(img)}" alt="" class="featured-image" onerror="this.src='${defaultCover(p.title)}'" />
+    ${featured}
     <div class="article-content">${formatBody(p.body)}</div>
 
     <div class="action-bar">
@@ -605,7 +607,7 @@ function renderBlogFeed(blogs) {
   }
   grid.innerHTML = blogs.map(b => `
     <article class="blog-feed-item" data-blog-id="${b.id}">
-      <div class="blog-feed-thumb" style="background-image:url('${escapeAttr(b.image_path || defaultCover(b.title))}');" onerror="this.style.background='linear-gradient(135deg,#fbc2eb,#a6c1ee)'"></div>
+      <div class="blog-feed-thumb" style="${thumbStyle(b.image_path, b.title)}"></div>
       <div class="blog-feed-body">
         <h3 class="blog-feed-title">${escapeHtml(b.title)}</h3>
         <p class="blog-feed-excerpt">${escapeHtml(b.body)}</p>
@@ -633,7 +635,6 @@ async function openBlog(id) {
 
 async function renderBlogDetail(b) {
   const wrap = document.getElementById('blogDetail');
-  const img  = b.image_path || defaultCover(b.title);
   const canManage = !!SHOPKEEPER;
   CURRENT_BLOG = b;
   const gi = getGuestIdentity();
@@ -642,6 +643,9 @@ async function renderBlogDetail(b) {
     counts = await api(`${API.interactions}?action=counts&product_id=${b.id}&email=${encodeURIComponent(gi.email)}`);
   } catch {}
 
+  const featured = b.image_path
+    ? `<img src="${escapeAttr(b.image_path)}" alt="" class="featured-image" loading="lazy" decoding="async" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'featured-image',style:'background:${defaultCover(b.title)}'}))" />`
+    : `<div class="featured-image" style="background:${defaultCover(b.title)}"></div>`;
   wrap.innerHTML = `
     <button class="back-btn" onclick="document.querySelector('[data-view=home]').click()">← Back to home</button>
     <h1 class="article-title">${escapeHtml(b.title)}</h1>
@@ -649,7 +653,7 @@ async function renderBlogDetail(b) {
       <span class="read-time">Published ${formatDate(b.created_at)}</span>
       ${counts.shares ? `<span class="read-time" style="margin-left:12px;">· ${counts.shares} share${counts.shares === 1 ? '' : 's'}</span>` : ''}
     </div>
-    <img src="${escapeAttr(img)}" alt="" class="featured-image" onerror="this.src='${defaultCover(b.title)}'" />
+    ${featured}
     <div class="article-content">${formatBody(b.body)}</div>
 
     <div class="action-bar">
@@ -1198,7 +1202,7 @@ async function loadDashboardProducts() {
     }
     grid.innerHTML = items.map(p => `
       <div class="gig-card" data-product-id="${p.id}">
-        <div class="gig-thumb" style="background-image:url('${escapeAttr(p.image_path || defaultCover(p.title))}');" onerror="this.style.background='linear-gradient(135deg,#a8e063,#56ab2f)'">
+        <div class="gig-thumb" style="${thumbStyle(p.image_path, p.title)}">
           <div class="gig-card-actions">
             <button class="gig-share" data-act="edit" data-id="${p.id}" title="Edit">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
@@ -1610,7 +1614,7 @@ async function loadDashboardBlogs() {
     }
     grid.innerHTML = items.map(b => `
       <div class="gig-card" data-blog-id="${b.id}">
-        <div class="gig-thumb" style="background-image:url('${escapeAttr(b.image_path || defaultCover(b.title))}');" onerror="this.style.background='linear-gradient(135deg,#fbc2eb,#a6c1ee)'">
+        <div class="gig-thumb" style="${thumbStyle(b.image_path, b.title)}">
           <div class="gig-card-actions">
             <button class="gig-share" data-act="edit-blog" data-id="${b.id}" title="Edit">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
@@ -1712,6 +1716,12 @@ function defaultCover(seed) {
   ];
   let h = 0; for (const c of String(seed || '')) h = (h * 31 + c.charCodeAt(0)) >>> 0;
   return palettes[h % palettes.length];
+}
+function thumbStyle(path, seed) {
+  // Real image path -> background-image:url(...). Missing -> gradient via background:.
+  // Wrapping a gradient string in url(...) made the browser fetch it and 404.
+  if (path) return `background-image:url('${escapeAttr(path)}')`;
+  return `background:${defaultCover(seed)}`;
 }
 
 /* ===== Boot ===== */
